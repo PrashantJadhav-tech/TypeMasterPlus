@@ -1,0 +1,6 @@
+{
+  "name": "TypeMasterPlus",
+  "description": "A responsive, feature-rich typing test application to practice typing speed and accuracy.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
