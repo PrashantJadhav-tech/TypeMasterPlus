@@ -23,6 +23,7 @@ import { TypingGame } from './pages/TypingGame';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
+import { AdminProfile } from './pages/AdminProfile';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -62,6 +63,7 @@ export default function App() {
                 <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/admin-profile" element={<AdminProfile />} />
               </Route>
             </Routes>
           </BrowserRouter>
