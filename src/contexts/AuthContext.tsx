@@ -79,14 +79,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const register = async (username: string, email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email, password, options: { data: { username } },
-    });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { username },
+    },
+  });
+
+  if (error) {
     return {
-      error: error ? error.message : null,
-      needsEmailConfirmation: !!data.user && !data.session,
+      error: error.message,
+      needsEmailConfirmation: false,
     };
+  }
+
+  // Existing email check
+  if (data.user && data.user.identities && data.user.identities.length === 0) {
+    return {
+      error: 'Email already exists. Please login.',
+      needsEmailConfirmation: false,
+    };
+  }
+
+  return {
+    error: null,
+    needsEmailConfirmation: !!data.user && !data.session,
   };
+};
 
   const logout = async () => {
     await supabase.auth.signOut();
