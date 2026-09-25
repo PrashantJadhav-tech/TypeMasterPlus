@@ -1,27 +1,41 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Keyboard, Lock, Eye, EyeOff } from 'lucide-react';
 
 export function ResetPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+
+      if (!data.session) {
+        setError('This password reset link is invalid or has expired.');
+      }
+    };
+
+    checkSession();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setError('');
-    setSuccess('');
+    setMessage('');
 
     if (!password || !confirmPassword) {
-      setError('Please enter both passwords.');
+      setError('Please enter both password fields.');
       return;
     }
 
@@ -41,13 +55,14 @@ export function ResetPassword() {
       password: password,
     });
 
+    setLoading(false);
+
     if (error) {
       setError(error.message);
-      setLoading(false);
       return;
     }
 
-    setSuccess('Password updated successfully!');
+    setMessage('Password updated successfully!');
 
     setTimeout(() => {
       navigate('/login');
@@ -58,31 +73,23 @@ export function ResetPassword() {
     <div className="flex-1 flex flex-col justify-center items-center py-12 px-4">
       <div className="w-full max-w-md bg-slate-800/80 border border-slate-700 p-8 rounded-2xl shadow-xl backdrop-blur-sm">
 
-        {/* Logo */}
-        <div className="flex justify-center mb-8 text-yellow-500">
-          <Keyboard className="w-16 h-16" />
-        </div>
-
-        {/* Title */}
         <h2 className="text-2xl font-bold text-center text-white mb-2">
           Set New Password
         </h2>
 
         <p className="text-slate-400 text-center mb-8">
-          Create a new password for your account.
+          Enter your new password below.
         </p>
 
-        {/* Error */}
         {error && (
           <div className="bg-red-500/10 border border-red-500/50 text-red-400 rounded-lg p-3 text-sm text-center mb-6">
             {error}
           </div>
         )}
 
-        {/* Success */}
-        {success && (
+        {message && (
           <div className="bg-green-500/10 border border-green-500/50 text-green-400 rounded-lg p-3 text-sm text-center mb-6">
-            {success}
+            {message}
           </div>
         )}
 
@@ -94,7 +101,7 @@ export function ResetPassword() {
               htmlFor="password"
               className="block text-sm font-medium text-slate-300 mb-2"
             >
-              Set New Password
+              New Password
             </label>
 
             <div className="relative">
@@ -106,16 +113,14 @@ export function ResetPassword() {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-11 pr-12 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-11 pr-12 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                 placeholder="Enter new password"
-                autoComplete="new-password"
               />
 
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-yellow-500"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
                   <EyeOff className="w-5 h-5" />
@@ -145,9 +150,8 @@ export function ResetPassword() {
                 id="confirmPassword"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-11 pr-12 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-11 pr-12 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                 placeholder="Confirm new password"
-                autoComplete="new-password"
               />
 
               <button
@@ -156,11 +160,6 @@ export function ResetPassword() {
                   setShowConfirmPassword(!showConfirmPassword)
                 }
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-yellow-500"
-                aria-label={
-                  showConfirmPassword
-                    ? 'Hide confirm password'
-                    : 'Show confirm password'
-                }
               >
                 {showConfirmPassword ? (
                   <EyeOff className="w-5 h-5" />
@@ -172,13 +171,12 @@ export function ResetPassword() {
             </div>
           </div>
 
-          {/* Update Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 text-slate-900 font-bold text-lg px-4 py-3 rounded-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 text-slate-900 font-bold text-lg px-4 py-3 rounded-lg"
           >
-            {loading ? 'Updating...' : 'Update Password'}
+            {loading ? 'Updating...' : 'Set Password'}
           </button>
 
         </form>

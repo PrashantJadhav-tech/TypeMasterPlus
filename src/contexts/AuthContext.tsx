@@ -14,7 +14,14 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
-  register: (username: string, email: string, password: string) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>;
+  register: (
+    username: string,
+    email: string,
+    password: string
+  ) => Promise<{
+    error: string | null;
+    needsEmailConfirmation: boolean;
+  }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 };
@@ -23,19 +30,35 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const convertUser = (supabaseUser: any, profile?: any): User => ({
   id: supabaseUser.id,
-  username: profile?.username || supabaseUser.user_metadata?.username || supabaseUser.email?.split('@')[0] || 'User',
+  username:
+    profile?.username ||
+    supabaseUser.user_metadata?.username ||
+    supabaseUser.email?.split('@')[0] ||
+    'User',
   email: supabaseUser.email || '',
   createdAt: supabaseUser.created_at,
-  avatarUrl: profile?.avatar_url || supabaseUser.user_metadata?.avatar_url || null,
+  avatarUrl:
+    profile?.avatar_url ||
+    supabaseUser.user_metadata?.avatar_url ||
+    null,
   role: profile?.role === 'admin' ? 'admin' : 'user',
 });
 
 async function getProfile(userId: string) {
-  const { data } = await supabase.from('profiles').select('username, avatar_url, role').eq('id', userId).maybeSingle();
+  const { data } = await supabase
+    .from('profiles')
+    .select('username, avatar_url, role')
+    .eq('id', userId)
+    .maybeSingle();
+
   return data;
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,7 +67,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       return;
     }
+
     const profile = await getProfile(supabaseUser.id);
+
     setUser(convertUser(supabaseUser, profile));
   };
 
@@ -55,17 +80,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+
     const loadSession = async () => {
       const { data } = await supabase.auth.getSession();
-      if (mounted && data.session?.user) await loadUser(data.session.user);
-      if (mounted) setLoading(false);
+
+      if (!mounted) return;
+
+      const isRecovery =
+        window.location.hash.includes('type=recovery');
+
+      if (isRecovery) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      if (data.session?.user) {
+        await loadUser(data.session.user);
+      }
+
+      if (mounted) {
+        setLoading(false);
+      }
     };
+
     loadSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) await loadUser(session.user);
-      else setUser(null);
-    });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setUser(null);
+          setLoading(false);
+
+          window.location.replace('/reset-password');
+          return;
+        }
+
+        if (session?.user) {
+          await loadUser(session.user);
+        } else {
+          setUser(null);
+        }
+      }
+    );
 
     return () => {
       mounted = false;
@@ -73,40 +132,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error ? error.message : null };
+  const login = async (
+    email: string,
+    password: string
+  ) => {
+    const { error } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+    return {
+      error: error ? error.message : null,
+    };
   };
 
-  const register = async (username: string, email: string, password: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { username },
-    },
-  });
+  const register = async (
+    username: string,
+    email: string,
+    password: string
+  ) => {
+    const { data, error } =
+      await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+          },
+        },
+      });
 
-  if (error) {
+    if (error) {
+      return {
+        error: error.message,
+        needsEmailConfirmation: false,
+      };
+    }
+
+    if (
+      data.user &&
+      data.user.identities &&
+      data.user.identities.length === 0
+    ) {
+      return {
+        error: 'Email already exists. Please login.',
+        needsEmailConfirmation: false,
+      };
+    }
+
     return {
-      error: error.message,
-      needsEmailConfirmation: false,
+      error: null,
+      needsEmailConfirmation:
+        !!data.user && !data.session,
     };
-  }
-
-  // Existing email check
-  if (data.user && data.user.identities && data.user.identities.length === 0) {
-    return {
-      error: 'Email already exists. Please login.',
-      needsEmailConfirmation: false,
-    };
-  }
-
-  return {
-    error: null,
-    needsEmailConfirmation: !!data.user && !data.session,
   };
-};
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -114,7 +194,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        logout,
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -122,6 +211,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+
+  if (!context) {
+    throw new Error(
+      'useAuth must be used within an AuthProvider'
+    );
+  }
+
   return context;
 }
