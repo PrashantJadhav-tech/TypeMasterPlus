@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTypingTest } from '../hooks/useTypingTest';
 import { SplitTypingArea } from '../components/typing/SplitTypingArea';
@@ -14,7 +14,8 @@ import {
   Shuffle,
   Trophy,
   BarChart3,
-  Lightbulb
+  Lightbulb,
+  Globe
 } from 'lucide-react';
 
 export function Practice() {
@@ -22,18 +23,25 @@ export function Practice() {
   const { passages, getRandomPassage, currentPassageId, setCurrentPassageId } =
     usePassages();
 
-  const initialPassage =
-    (currentPassageId &&
-      passages.find((p) => p.id === currentPassageId)) ||
-    passages[0] ||
-    getRandomPassage();
+  // Language state: 'english' or 'marathi'
+  const [selectedLanguage, setSelectedLanguage] = useState<'english' | 'marathi'>('english');
 
-  const [currentText, setCurrentText] = useState(
-    initialPassage?.text || ''
-  );
+  // Filter passages based on selected language
+  // (Jar passage object madhe language nasel, tar default 'english' dharle jael)
+  const filteredPassages = useMemo(() => {
+    return passages.filter((p: any) => (p.language || 'english') === selectedLanguage);
+  }, [passages, selectedLanguage]);
 
+  // Initial passage helper based on language
+  const getInitialPassageForLang = (lang: 'english' | 'marathi') => {
+    const langList = passages.filter((p: any) => (p.language || 'english') === lang);
+    return langList[0] || passages[0] || null;
+  };
+
+  const initialPassage = getInitialPassageForLang(selectedLanguage);
+
+  const [currentText, setCurrentText] = useState(initialPassage?.text || '');
   const [targetWpm, setTargetWpm] = useState<number>(30);
-
   const [isSetup, setIsSetup] = useState(true);
 
   // Quick Test settings
@@ -53,6 +61,16 @@ export function Practice() {
     submitTest
   } = useTypingTest(currentText, testDuration);
 
+  // Language change handler
+  const handleLanguageChange = (lang: 'english' | 'marathi') => {
+    setSelectedLanguage(lang);
+    const langList = passages.filter((p: any) => (p.language || 'english') === lang);
+    if (langList.length > 0) {
+      setCurrentPassageId(langList[0].id);
+      setCurrentText(langList[0].text);
+    }
+  };
+
   useEffect(() => {
     if (!currentPassageId && initialPassage) {
       setCurrentPassageId(initialPassage.id);
@@ -61,21 +79,22 @@ export function Practice() {
 
   const handlePassageChange = (id: string) => {
     const passage = passages.find((p) => p.id === id);
-
     if (!passage) return;
 
     setCurrentPassageId(id);
     setCurrentText(passage.text);
   };
 
-  // Random passage
+  // Random passage from current selected language
   const handleRandomPassage = () => {
-    const randomPassage = getRandomPassage();
+    if (filteredPassages.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * filteredPassages.length);
+    const randomPassage = filteredPassages[randomIndex];
 
-    if (!randomPassage) return;
-
-    setCurrentPassageId(randomPassage.id);
-    setCurrentText(randomPassage.text);
+    if (randomPassage) {
+      setCurrentPassageId(randomPassage.id);
+      setCurrentText(randomPassage.text);
+    }
   };
 
   // Start normal 7-minute practice
@@ -87,13 +106,7 @@ export function Practice() {
 
   // Start Quick Test
   const handleStartQuickTest = () => {
-    const randomPassage = getRandomPassage();
-
-    if (randomPassage) {
-      setCurrentPassageId(randomPassage.id);
-      setCurrentText(randomPassage.text);
-    }
-
+    handleRandomPassage();
     setTestMode('quick');
     reset();
     setIsSetup(false);
@@ -104,7 +117,6 @@ export function Practice() {
       if (!window.confirm('Are you sure you want to leave this test?')) {
         return;
       }
-
       reset();
     }
 
@@ -146,7 +158,7 @@ export function Practice() {
     };
   }, [status]);
 
-  // Results
+  // Results screen
   if (status === 'finished') {
     return (
       <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col pt-16 px-4 md:px-8 overflow-y-auto items-center justify-center">
@@ -170,7 +182,6 @@ export function Practice() {
     return (
       <div className="min-h-screen bg-slate-900 text-white px-4 py-8 md:py-12 overflow-y-auto">
         <div className="max-w-5xl mx-auto">
-
           {/* Back */}
           <button
             type="button"
@@ -182,7 +193,7 @@ export function Practice() {
           </button>
 
           {/* Header */}
-          <div className="text-center mb-10">
+          <div className="text-center mb-8">
             <div className="mx-auto w-16 h-16 rounded-2xl bg-yellow-500/10 flex items-center justify-center mb-4">
               <Keyboard className="w-8 h-8 text-yellow-500" />
             </div>
@@ -192,13 +203,50 @@ export function Practice() {
             </h1>
 
             <p className="text-slate-400 mt-2">
-              Improve your typing speed and accuracy
+              Improve your typing speed and accuracy in English or Marathi
             </p>
+          </div>
+
+          {/* Language Selector Switch */}
+          <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                <Globe className="w-5 h-5 text-yellow-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-base">Select Typing Language</h3>
+                <p className="text-xs text-slate-400">Choose English or Marathi practice mode</p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => handleLanguageChange('english')}
+                className={`flex-1 sm:flex-initial px-6 py-2.5 rounded-xl font-bold transition-all text-sm ${
+                  selectedLanguage === 'english'
+                    ? 'bg-yellow-500 text-slate-900 shadow-md'
+                    : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-700'
+                }`}
+              >
+                English
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLanguageChange('marathi')}
+                className={`flex-1 sm:flex-initial px-6 py-2.5 rounded-xl font-bold transition-all text-sm font-devanagari ${
+                  selectedLanguage === 'marathi'
+                    ? 'bg-yellow-500 text-slate-900 shadow-md'
+                    : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-700'
+                }`}
+              >
+                मराठी (Marathi)
+              </button>
+            </div>
           </div>
 
           {/* Quick Test */}
           <div className="bg-slate-800/70 border border-slate-700 rounded-3xl p-6 md:p-8 shadow-xl mb-8">
-
             <div className="flex items-center gap-3 mb-2">
               <div className="w-11 h-11 rounded-xl bg-yellow-500/10 flex items-center justify-center">
                 <Zap className="w-6 h-6 text-yellow-500" />
@@ -206,7 +254,7 @@ export function Practice() {
 
               <div>
                 <h2 className="text-xl md:text-2xl font-bold text-white">
-                  Quick Test
+                  Quick Test ({selectedLanguage === 'english' ? 'English' : 'मराठी'})
                 </h2>
 
                 <p className="text-sm text-slate-400">
@@ -251,7 +299,6 @@ export function Practice() {
 
           {/* Passage Practice */}
           <div className="bg-slate-800/70 border border-slate-700 rounded-3xl p-6 md:p-8 shadow-xl">
-
             <div className="flex items-center gap-3 mb-6">
               <div className="w-11 h-11 rounded-xl bg-yellow-500/10 flex items-center justify-center">
                 <BookOpen className="w-6 h-6 text-yellow-500" />
@@ -259,7 +306,7 @@ export function Practice() {
 
               <div>
                 <h2 className="text-xl md:text-2xl font-bold text-white">
-                  Passage Practice
+                  Passage Practice ({selectedLanguage === 'english' ? 'English' : 'मराठी'})
                 </h2>
 
                 <p className="text-sm text-slate-400">
@@ -293,7 +340,7 @@ export function Practice() {
               </div>
             </div>
 
-            {/* Passage */}
+            {/* Passage Selection Dropdown */}
             <div className="mb-6">
               <label className="flex items-center gap-2 text-sm font-bold text-slate-300 mb-3">
                 <BookOpen className="w-4 h-4 text-yellow-500" />
@@ -301,15 +348,19 @@ export function Practice() {
               </label>
 
               <select
-                value={currentPassageId || initialPassage?.id || ''}
+                value={currentPassageId || filteredPassages[0]?.id || ''}
                 onChange={(e) => handlePassageChange(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-slate-900 text-slate-200 border border-slate-700 outline-none focus:border-yellow-500"
               >
-                {passages.map((passage) => (
-                  <option key={passage.id} value={passage.id}>
-                    {passage.title}
-                  </option>
-                ))}
+                {filteredPassages.length === 0 ? (
+                  <option value="">No passages found</option>
+                ) : (
+                  filteredPassages.map((passage) => (
+                    <option key={passage.id} value={passage.id}>
+                      {passage.title}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
@@ -332,8 +383,8 @@ export function Practice() {
               <span className="mx-2">•</span>
 
               <span>
-                {passages.find((p) => p.id === currentPassageId)?.title ||
-                  initialPassage?.title ||
+                {filteredPassages.find((p) => p.id === currentPassageId)?.title ||
+                  filteredPassages[0]?.title ||
                   'Selected Passage'}
               </span>
 
@@ -354,44 +405,28 @@ export function Practice() {
 
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-
             <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5">
               <div className="flex items-center gap-3">
                 <Trophy className="w-5 h-5 text-yellow-500" />
-                <span className="text-slate-400 text-sm">
-                  Best WPM
-                </span>
+                <span className="text-slate-400 text-sm">Best WPM</span>
               </div>
-
-              <p className="text-2xl font-black text-white mt-2">
-                —
-              </p>
+              <p className="text-2xl font-black text-white mt-2">—</p>
             </div>
 
             <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5">
               <div className="flex items-center gap-3">
                 <BarChart3 className="w-5 h-5 text-yellow-500" />
-                <span className="text-slate-400 text-sm">
-                  Best Accuracy
-                </span>
+                <span className="text-slate-400 text-sm">Best Accuracy</span>
               </div>
-
-              <p className="text-2xl font-black text-white mt-2">
-                —
-              </p>
+              <p className="text-2xl font-black text-white mt-2">—</p>
             </div>
 
             <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5">
               <div className="flex items-center gap-3">
                 <Keyboard className="w-5 h-5 text-yellow-500" />
-                <span className="text-slate-400 text-sm">
-                  Tests Completed
-                </span>
+                <span className="text-slate-400 text-sm">Tests Completed</span>
               </div>
-
-              <p className="text-2xl font-black text-white mt-2">
-                —
-              </p>
+              <p className="text-2xl font-black text-white mt-2">—</p>
             </div>
           </div>
 
@@ -399,19 +434,14 @@ export function Practice() {
           <div className="mt-8 bg-slate-800/40 border border-slate-700 rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-4">
               <Lightbulb className="w-5 h-5 text-yellow-500" />
-
-              <h3 className="font-bold text-white">
-                Typing Tips
-              </h3>
+              <h3 className="font-bold text-white">Typing Tips</h3>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-slate-400">
               <p>• Focus on accuracy before speed.</p>
               <p>• Keep your fingers on the correct keys.</p>
               <p>• Maintain a steady typing rhythm.</p>
             </div>
           </div>
-
         </div>
       </div>
     );
@@ -420,7 +450,6 @@ export function Practice() {
   // Actual typing screen
   return (
     <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col">
-
       <button
         onClick={handleBack}
         className="absolute top-4 left-4 z-50 flex items-center space-x-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors border border-slate-700 backdrop-blur"
@@ -438,11 +467,11 @@ export function Practice() {
         onCancel={reset}
         stats={stats}
         timeLeft={timeLeft}
-        passages={passages}
+        passages={filteredPassages}
         currentPassageId={currentPassageId}
         onPassageChange={handlePassageChange}
         onSubmit={submitTest}
       />
     </div>
   );
-}
+} 

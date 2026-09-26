@@ -16,9 +16,11 @@ export type TypingStats = {
 
 export function useTypingTest(text: string, duration: number) {
   const { settings } = useSettings();
+
   const [input, setInput] = useState('');
   const [status, setStatus] = useState<TestStatus>('idle');
   const [timeLeft, setTimeLeft] = useState(duration);
+
   const [stats, setStats] = useState<TypingStats>({
     wpm: 0,
     accuracy: 100,
@@ -32,12 +34,17 @@ export function useTypingTest(text: string, duration: number) {
 
   const timerRef = useRef<number | null>(null);
 
-  // Initialize or reset
+  // Reset test
   const reset = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
     setInput('');
     setStatus('idle');
     setTimeLeft(duration);
+
     setStats({
       wpm: 0,
       accuracy: 100,
@@ -54,133 +61,180 @@ export function useTypingTest(text: string, duration: number) {
     reset();
   }, [text, duration, reset]);
 
-  // Calculate final stats
+  // Finish test
   const finishTest = useCallback(() => {
     setStatus('finished');
-    if (timerRef.current) clearInterval(timerRef.current);
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   }, []);
 
+  // Force start
   const forceStart = useCallback(() => {
     if (status === 'idle') {
       setStatus('running');
     }
   }, [status]);
 
-  // Timer effect
+  // Timer
   useEffect(() => {
-    if (status === 'running') {
-      timerRef.current = window.setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            finishTest();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
+    if (status !== 'running') return;
+
+    timerRef.current = window.setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          finishTest();
+          return 0;
+        }
+
+        return prev - 1;
+      });
+    }, 1000);
+
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
   }, [status, finishTest]);
 
-  const handleInput = useCallback((val: string) => {
-    if (status === 'finished') return;
-    
-    // Check if backspace was used by comparing lengths
-    const isBackspace = val.length < input.length;
-    
-    // Handle backspace setting
-    if (isBackspace && !settings.backspaceEnabled) return;
-    
-    // Limit input length to text length
-    if (val.length > text.length) return;
+  // Handle typing
+  const handleInput = useCallback(
+    (val: string) => {
+      if (status === 'finished') return;
 
-    if (status === 'idle') {
-      if (settings.autoStart && val.length > 0) {
-        setStatus('running');
-      } else {
-        // If autoStart is false, prevent typing until it's running
+      const isBackspace = val.length < input.length;
+
+      // Backspace setting
+      if (isBackspace && !settings.backspaceEnabled) {
         return;
       }
-    }
 
-    // Spacebar Error Detection: if settings.spacebarError is TRUE,
-    // and they type a space where there isn't one, we process it normally (so it highlights red).
-    // If settings.spacebarError is FALSE, and they type a space where there isn't one, we ignore the space!
-    // Let's implement that:
-    if (!isBackspace && !settings.spacebarError) {
-      const charTyped = val[val.length - 1];
-      const charExpected = text[val.length - 1];
-      if (charTyped === ' ' && charExpected !== ' ') {
-        return; // ignore the space
+      /*
+       * IMPORTANT:
+       * Do NOT block Unicode / Marathi typing.
+       *
+       * Marathi keyboards and IME can produce Unicode
+       * characters and intermediate composition values.
+       */
+
+      // Allow typing even when autoStart setting is OFF.
+      // First character automatically starts the timer.
+      if (status === 'idle' && val.length > 0) {
+        setStatus('running');
       }
-    }
 
-    // Audio cues
-    if (!isBackspace) {
-      const charTyped = val[val.length - 1];
-      const charExpected = text[val.length - 1];
-      if (charTyped === charExpected && settings.typingSound) {
-        playSound('correct');
-      } else if (charTyped !== charExpected && settings.errorSound) {
-        playSound('error');
-      }
-    }
+      // Spacebar error setting
+      if (!isBackspace && !settings.spacebarError) {
+        const charTyped = val[val.length - 1];
+        const charExpected = text[val.length - 1];
 
-    setInput(val);
-
-    // Calculate current stats
-    let correct = 0;
-    let incorrect = 0;
-    
-    for (let i = 0; i < val.length; i++) {
-      if (val[i] === text[i]) {
-        correct++;
-      } else {
-        incorrect++;
-      }
-    }
-
-    const totalTyped = val.length;
-    const accuracy = totalTyped > 0 ? Math.round((correct / totalTyped) * 100) : 100;
-    
-    // WPM: (correct chars / 5) / time elapsed in minutes
-    const timeElapsed = duration - timeLeft;
-    const minutes = timeElapsed > 0 ? timeElapsed / 60 : 1 / 60; // Avoid infinity on first keystroke
-    const wpm = Math.round((correct / 5) / minutes);
-
-    // Words calculation
-    const typedWords = val.split(' ');
-    const targetWords = text.split(' ');
-    
-    let correctWordsCount = 0;
-    let wrongWordsCount = 0;
-    
-    typedWords.forEach((word, index) => {
-      // Only count completed words or the last word if it's the end of text
-      if (index < typedWords.length - 1 || val.length === text.length) {
-        if (word === targetWords[index]) {
-          correctWordsCount++;
-        } else if (word.length > 0) { // Avoid counting empty strings as wrong words
-          wrongWordsCount++;
+        if (charTyped === ' ' && charExpected !== ' ') {
+          return;
         }
       }
-    });
 
-    setStats(prev => ({
-      ...prev,
-      correctChars: correct,
-      incorrectChars: incorrect,
-      accuracy,
-      wpm: wpm > 0 ? wpm : 0,
-      totalKeystrokes: prev.totalKeystrokes + (isBackspace ? 0 : 1),
-      correctWords: correctWordsCount,
-      wrongWords: wrongWordsCount,
-      timeElapsed: timeElapsed,
-    }));
+      // Audio
+      if (!isBackspace && val.length > 0) {
+        const charTyped = val[val.length - 1];
+        const charExpected = text[val.length - 1];
 
-  }, [input, status, text, duration, timeLeft, finishTest, settings]);
+        if (charTyped === charExpected && settings.typingSound) {
+          playSound('correct');
+        } else if (
+          charTyped !== charExpected &&
+          settings.errorSound
+        ) {
+          playSound('error');
+        }
+      }
+
+      setInput(val);
+
+      // Character statistics
+      let correct = 0;
+      let incorrect = 0;
+
+      /*
+       * Array.from() is used instead of split('')
+       * so Unicode / Marathi characters are handled better.
+       */
+      const typedChars = Array.from(val);
+      const targetChars = Array.from(text);
+
+      for (let i = 0; i < typedChars.length; i++) {
+        if (typedChars[i] === targetChars[i]) {
+          correct++;
+        } else {
+          incorrect++;
+        }
+      }
+
+      const totalTyped = typedChars.length;
+
+      const accuracy =
+        totalTyped > 0
+          ? Math.round((correct / totalTyped) * 100)
+          : 100;
+
+      // WPM
+      const timeElapsed = duration - timeLeft;
+      const minutes =
+        timeElapsed > 0 ? timeElapsed / 60 : 1 / 60;
+
+      const wpm = Math.round((correct / 5) / minutes);
+
+      // Words
+      const typedWords = val.split(' ');
+      const targetWords = text.split(' ');
+
+      let correctWordsCount = 0;
+      let wrongWordsCount = 0;
+
+      typedWords.forEach((word, index) => {
+        if (
+          index < typedWords.length - 1 ||
+          val.length === text.length
+        ) {
+          if (word === targetWords[index]) {
+            correctWordsCount++;
+          } else if (word.length > 0) {
+            wrongWordsCount++;
+          }
+        }
+      });
+
+      setStats((prev) => ({
+        ...prev,
+        correctChars: correct,
+        incorrectChars: incorrect,
+        accuracy,
+        wpm: wpm > 0 ? wpm : 0,
+        totalKeystrokes:
+          prev.totalKeystrokes + (isBackspace ? 0 : 1),
+        correctWords: correctWordsCount,
+        wrongWords: wrongWordsCount,
+        timeElapsed,
+      }));
+
+      // Automatically finish when passage is completed
+      if (val === text) {
+        finishTest();
+      }
+    },
+    [
+      input,
+      status,
+      text,
+      duration,
+      timeLeft,
+      finishTest,
+      settings,
+    ]
+  );
 
   return {
     input,
@@ -190,34 +244,64 @@ export function useTypingTest(text: string, duration: number) {
     handleInput,
     reset,
     forceStart,
-    submitTest: finishTest
+    submitTest: finishTest,
   };
 }
 
-// Simple audio player for beeps
-const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+// Audio player
+const audioCtx = new (window.AudioContext ||
+  (window as any).webkitAudioContext)();
+
 function playSound(type: 'correct' | 'error') {
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
   }
+
   const oscillator = audioCtx.createOscillator();
   const gainNode = audioCtx.createGain();
-  
+
   oscillator.connect(gainNode);
   gainNode.connect(audioCtx.destination);
-  
+
   if (type === 'correct') {
     oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
-    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+
+    oscillator.frequency.setValueAtTime(
+      600,
+      audioCtx.currentTime
+    );
+
+    gainNode.gain.setValueAtTime(
+      0.1,
+      audioCtx.currentTime
+    );
+
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.001,
+      audioCtx.currentTime + 0.1
+    );
+
     oscillator.start();
     oscillator.stop(audioCtx.currentTime + 0.1);
   } else {
     oscillator.type = 'square';
-    oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
-    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+
+    oscillator.frequency.setValueAtTime(
+      150,
+      audioCtx.currentTime
+    );
+
+    gainNode.gain.setValueAtTime(
+      0.1,
+      audioCtx.currentTime
+    );
+
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.001,
+      audioCtx.currentTime + 0.2
+    );
+
     oscillator.start();
     oscillator.stop(audioCtx.currentTime + 0.2);
   }
