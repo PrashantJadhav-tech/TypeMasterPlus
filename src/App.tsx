@@ -10,7 +10,7 @@ import { PassagesProvider } from './contexts/PassagesContext';
 import { Layout } from './components/layout/Layout';
 import { Landing } from './pages/Landing';
 import { Practice } from './pages/Practice';
-import { Exam } from './pages/Exam';
+import Exam from './pages/Exam';
 import { Learn } from './pages/Learn';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
