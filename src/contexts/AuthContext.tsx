@@ -13,7 +13,11 @@ export type User = {
 type AuthContextType = {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ error: string | null }>;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ error: string | null }>;
+
   register: (
     username: string,
     email: string,
@@ -22,25 +26,34 @@ type AuthContextType = {
     error: string | null;
     needsEmailConfirmation: boolean;
   }>;
+
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const convertUser = (supabaseUser: any, profile?: any): User => ({
+const convertUser = (
+  supabaseUser: any,
+  profile?: any
+): User => ({
   id: supabaseUser.id,
+
   username:
     profile?.username ||
     supabaseUser.user_metadata?.username ||
     supabaseUser.email?.split('@')[0] ||
     'User',
+
   email: supabaseUser.email || '',
+
   createdAt: supabaseUser.created_at,
+
   avatarUrl:
     profile?.avatar_url ||
     supabaseUser.user_metadata?.avatar_url ||
     null,
+
   role: profile?.role === 'admin' ? 'admin' : 'user',
 });
 
@@ -75,6 +88,7 @@ export function AuthProvider({
 
   const refreshUser = async () => {
     const { data } = await supabase.auth.getUser();
+
     await loadUser(data.user);
   };
 
@@ -86,12 +100,21 @@ export function AuthProvider({
 
       if (!mounted) return;
 
+      /*
+       * Password recovery link contains:
+       * #type=recovery
+       *
+       * Keep the recovery hash and move the user
+       * directly to /reset-password.
+       */
       const isRecovery =
         window.location.hash.includes('type=recovery');
 
       if (isRecovery) {
-        setUser(null);
-        setLoading(false);
+        window.location.replace(
+          `/reset-password${window.location.hash}`
+        );
+
         return;
       }
 
@@ -110,11 +133,19 @@ export function AuthProvider({
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+
+        /*
+         * Supabase fires PASSWORD_RECOVERY
+         * when the reset link is opened.
+         */
         if (event === 'PASSWORD_RECOVERY') {
           setUser(null);
           setLoading(false);
 
-          window.location.replace('/reset-password');
+          window.location.replace(
+            `/reset-password${window.location.hash}`
+          );
+
           return;
         }
 
@@ -122,6 +153,10 @@ export function AuthProvider({
           await loadUser(session.user);
         } else {
           setUser(null);
+        }
+
+        if (mounted) {
+          setLoading(false);
         }
       }
     );
@@ -156,6 +191,7 @@ export function AuthProvider({
       await supabase.auth.signUp({
         email,
         password,
+
         options: {
           data: {
             username,
@@ -183,6 +219,7 @@ export function AuthProvider({
 
     return {
       error: null,
+
       needsEmailConfirmation:
         !!data.user && !data.session,
     };
@@ -190,6 +227,7 @@ export function AuthProvider({
 
   const logout = async () => {
     await supabase.auth.signOut();
+
     setUser(null);
   };
 
