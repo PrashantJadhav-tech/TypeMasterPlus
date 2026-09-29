@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '../lib/supabase';
 import { useSettings } from '../contexts/SettingsContext';
 
 export type TestStatus = 'idle' | 'running' | 'finished';
@@ -14,7 +15,12 @@ export type TypingStats = {
   timeElapsed: number;
 };
 
-export function useTypingTest(text: string, duration: number) {
+export function useTypingTest(
+  text: string,
+  duration: number,
+  testType: string = 'practice',
+  passageTitle: string = ''
+) {
   const { settings } = useSettings();
 
   const [input, setInput] = useState('');
@@ -33,13 +39,19 @@ export function useTypingTest(text: string, duration: number) {
   });
 
   const timerRef = useRef<number | null>(null);
+  const savedRef = useRef(false);
 
-  // Reset test
+  // --------------------------------------------------
+  // RESET TEST
+  // --------------------------------------------------
+
   const reset = useCallback(() => {
-    if (timerRef.current) {
+    if (timerRef.current !== null) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+
+    savedRef.current = false;
 
     setInput('');
     setStatus('idle');
@@ -61,248 +73,322 @@ export function useTypingTest(text: string, duration: number) {
     reset();
   }, [text, duration, reset]);
 
-  // Finish test
+  // --------------------------------------------------
+  // FINISH TEST
+  // --------------------------------------------------
+
   const finishTest = useCallback(() => {
     setStatus('finished');
 
-    if (timerRef.current) {
+    if (timerRef.current !== null) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
   }, []);
 
-  // Force start
-  const forceStart = useCallback(() => {
-    if (status === 'idle') {
-      setStatus('running');
-    }
-  }, [status]);
+  // --------------------------------------------------
+  // SAVE RESULT TO SUPABASE
+  // --------------------------------------------------
 
-  // Timer
   useEffect(() => {
-    if (status !== 'running') return;
+    if (status !== 'finished') return;
+    if (savedRef.current) return;
+
+    const saveResult = async () => {
+      savedRef.current = true;
+
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError) {
+          console.error('ERROR GETTING USER:', userError);
+          savedRef.current = false;
+          return;
+        }
+
+        if (!user) {
+          console.error('NO LOGGED-IN USER. RESULT NOT SAVED.');
+          savedRef.current = false;
+          return;
+        }
+
+        console.log('Logged-in user:', user.id);
+
+        const resultData = {
+          user_id: user.id,
+
+          wpm: Number(stats.wpm),
+          accuracy: Number(stats.accuracy),
+
+          correct_chars: Number(stats.correctChars),
+          incorrect_chars: Number(stats.incorrectChars),
+          total_keystrokes: Number(stats.totalKeystrokes),
+
+          correct_words: Number(stats.correctWords),
+          wrong_words: Number(stats.wrongWords),
+
+          time_elapsed: Number(stats.timeElapsed),
+          test_duration: Number(duration),
+
+          test_type: testType || 'practice',
+
+          passage_title:
+            passageTitle && passageTitle.trim() !== ''
+              ? passageTitle
+              : null,
+        };
+
+        console.log('SENDING HISTORY DATA:', resultData);
+
+        const { data, error } = await supabase
+          .from('typing_history')
+          .insert(resultData)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('FAILED TO SAVE TYPING HISTORY');
+          console.error('MESSAGE:', error.message);
+          console.error('DETAILS:', error.details);
+          console.error('HINT:', error.hint);
+          console.error('CODE:', error.code);
+          console.error('FULL ERROR:', error);
+
+          savedRef.current = false;
+          return;
+        }
+
+        console.log('TYPING HISTORY SAVED SUCCESSFULLY:', data);
+      } catch (error) {
+        console.error(
+          'UNEXPECTED ERROR WHILE SAVING HISTORY:',
+          error
+        );
+
+        savedRef.current = false;
+      }
+    };
+
+    saveResult();
+  }, [
+    status,
+    stats,
+    duration,
+    testType,
+    passageTitle,
+  ]);
+
+  // --------------------------------------------------
+  // START TIMER
+  // --------------------------------------------------
+
+  const startTimer = useCallback(() => {
+    if (timerRef.current !== null) return;
 
     timerRef.current = window.setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          finishTest();
+          if (timerRef.current !== null) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+
+          setStatus('finished');
           return 0;
         }
 
         return prev - 1;
       });
+
+      setStats((prev) => ({
+        ...prev,
+        timeElapsed: prev.timeElapsed + 1,
+      }));
     }, 1000);
+  }, []);
 
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [status, finishTest]);
+  // --------------------------------------------------
+  // HANDLE TYPING
+  // --------------------------------------------------
 
-  // Handle typing
   const handleInput = useCallback(
-    (val: string) => {
+    (value: string) => {
       if (status === 'finished') return;
 
-      const isBackspace = val.length < input.length;
+      if (status === 'idle') {
+        setStatus('running');
+        startTimer();
+      }
 
-      // Backspace setting
-      if (isBackspace && !settings.backspaceEnabled) {
+      let val = value;
+
+      // Backspace disabled
+      if (!settings.backspaceEnabled && val.length < input.length) {
         return;
       }
 
-      /*
-       * IMPORTANT:
-       * Do NOT block Unicode / Marathi typing.
-       *
-       * Marathi keyboards and IME can produce Unicode
-       * characters and intermediate composition values.
-       */
+      // Strict spacebar mode
+      if (settings.strictSpacebarErrors) {
+        const currentIndex = val.length - 1;
 
-      // Allow typing even when autoStart setting is OFF.
-      // First character automatically starts the timer.
-      if (status === 'idle' && val.length > 0) {
-        setStatus('running');
-      }
-
-      // Spacebar error setting
-      if (!isBackspace && !settings.spacebarError) {
-        const charTyped = val[val.length - 1];
-        const charExpected = text[val.length - 1];
-
-        if (charTyped === ' ' && charExpected !== ' ') {
-          return;
-        }
-      }
-
-      // Audio
-      if (!isBackspace && val.length > 0) {
-        const charTyped = val[val.length - 1];
-        const charExpected = text[val.length - 1];
-
-        if (charTyped === charExpected && settings.typingSound) {
-          playSound('correct');
-        } else if (
-          charTyped !== charExpected &&
-          settings.errorSound
+        if (
+          currentIndex >= 0 &&
+          currentIndex < text.length &&
+          val[currentIndex] === ' ' &&
+          text[currentIndex] !== ' '
         ) {
-          playSound('error');
+          val =
+            val.substring(0, currentIndex) +
+            text[currentIndex];
         }
       }
 
       setInput(val);
 
-      // Character statistics
-      let correct = 0;
-      let incorrect = 0;
+      // ----------------------------------------------
+      // Calculate statistics
+      // ----------------------------------------------
 
-      /*
-       * Array.from() is used instead of split('')
-       * so Unicode / Marathi characters are handled better.
-       */
       const typedChars = Array.from(val);
       const targetChars = Array.from(text);
 
-      for (let i = 0; i < typedChars.length; i++) {
-        if (typedChars[i] === targetChars[i]) {
-          correct++;
+      let correctChars = 0;
+      let incorrectChars = 0;
+
+      typedChars.forEach((char, index) => {
+        if (char === targetChars[index]) {
+          correctChars++;
         } else {
-          incorrect++;
-        }
-      }
-
-      const totalTyped = typedChars.length;
-
-      const accuracy =
-        totalTyped > 0
-          ? Math.round((correct / totalTyped) * 100)
-          : 100;
-
-      // WPM
-      const timeElapsed = duration - timeLeft;
-      const minutes =
-        timeElapsed > 0 ? timeElapsed / 60 : 1 / 60;
-
-      const wpm = Math.round((correct / 5) / minutes);
-
-      // Words
-      const typedWords = val.split(' ');
-      const targetWords = text.split(' ');
-
-      let correctWordsCount = 0;
-      let wrongWordsCount = 0;
-
-      typedWords.forEach((word, index) => {
-        if (
-          index < typedWords.length - 1 ||
-          val.length === text.length
-        ) {
-          if (word === targetWords[index]) {
-            correctWordsCount++;
-          } else if (word.length > 0) {
-            wrongWordsCount++;
-          }
+          incorrectChars++;
         }
       });
 
-      setStats((prev) => ({
-        ...prev,
-        correctChars: correct,
-        incorrectChars: incorrect,
-        accuracy,
-        wpm: wpm > 0 ? wpm : 0,
-        totalKeystrokes:
-          prev.totalKeystrokes + (isBackspace ? 0 : 1),
-        correctWords: correctWordsCount,
-        wrongWords: wrongWordsCount,
-        timeElapsed,
-      }));
+      const totalKeystrokes =
+        correctChars + incorrectChars;
 
-      // Automatically finish when passage is completed
+      const accuracy =
+        totalKeystrokes > 0
+          ? (correctChars / totalKeystrokes) * 100
+          : 100;
+
+      const elapsedSeconds =
+        duration - timeLeft;
+
+      const elapsedMinutes =
+        elapsedSeconds > 0
+          ? elapsedSeconds / 60
+          : 0;
+
+      const wpm =
+        elapsedMinutes > 0
+          ? (correctChars / 5) / elapsedMinutes
+          : 0;
+
+      // ----------------------------------------------
+      // Word statistics
+      // ----------------------------------------------
+
+      const typedWords = val.trim()
+        ? val.trim().split(/\s+/)
+        : [];
+
+      const targetWords = text.trim()
+        ? text.trim().split(/\s+/)
+        : [];
+
+      let correctWords = 0;
+      let wrongWords = 0;
+
+      typedWords.forEach((word, index) => {
+        if (word === targetWords[index]) {
+          correctWords++;
+        } else {
+          wrongWords++;
+        }
+      });
+
+      setStats({
+        wpm: Math.round(wpm * 100) / 100,
+        accuracy:
+          Math.round(accuracy * 100) / 100,
+        correctChars,
+        incorrectChars,
+        totalKeystrokes,
+        correctWords,
+        wrongWords,
+        timeElapsed: elapsedSeconds,
+      });
+
+      // ----------------------------------------------
+      // Typing sound
+      // ----------------------------------------------
+
+      if (settings.typingSound) {
+        try {
+          const audio = new Audio(
+            '/sounds/typing.mp3'
+          );
+
+          audio.volume = 0.2;
+          audio.play().catch(() => {});
+        } catch {
+          // Ignore audio errors
+        }
+      }
+
+      // ----------------------------------------------
+      // Finish when passage completed
+      // ----------------------------------------------
+
       if (val === text) {
-        finishTest();
+        setStatus('finished');
+
+        if (timerRef.current !== null) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
       }
     },
     [
-      input,
       status,
+      startTimer,
+      settings,
+      input,
       text,
       duration,
       timeLeft,
-      finishTest,
-      settings,
     ]
   );
 
+  // --------------------------------------------------
+  // CLEANUP TIMER
+  // --------------------------------------------------
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
+
+  // --------------------------------------------------
+  // RETURN
+  // --------------------------------------------------
+
   return {
     input,
+    setInput,
     status,
+    setStatus,
     timeLeft,
     stats,
     handleInput,
     reset,
-    forceStart,
-    submitTest: finishTest,
+    finishTest,
   };
-}
-
-
-// Audio player
-const audioCtx = new (window.AudioContext ||
-  (window as any).webkitAudioContext)();
-
-function playSound(type: 'correct' | 'error') {
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-
-  const oscillator = audioCtx.createOscillator();
-  const gainNode = audioCtx.createGain();
-
-  oscillator.connect(gainNode);
-  gainNode.connect(audioCtx.destination);
-
-  if (type === 'correct') {
-    oscillator.type = 'sine';
-
-    oscillator.frequency.setValueAtTime(
-      600,
-      audioCtx.currentTime
-    );
-
-    gainNode.gain.setValueAtTime(
-      0.1,
-      audioCtx.currentTime
-    );
-
-    gainNode.gain.exponentialRampToValueAtTime(
-      0.001,
-      audioCtx.currentTime + 0.1
-    );
-
-    oscillator.start();
-    oscillator.stop(audioCtx.currentTime + 0.1);
-  } else {
-    oscillator.type = 'square';
-
-    oscillator.frequency.setValueAtTime(
-      150,
-      audioCtx.currentTime
-    );
-
-    gainNode.gain.setValueAtTime(
-      0.1,
-      audioCtx.currentTime
-    );
-
-    gainNode.gain.exponentialRampToValueAtTime(
-      0.001,
-      audioCtx.currentTime + 0.2
-    );
-
-    oscillator.start();
-    oscillator.stop(audioCtx.currentTime + 0.2);
-  }
 }

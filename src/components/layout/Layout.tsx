@@ -34,7 +34,6 @@ export function Layout() {
       document.head.appendChild(styleEl);
     }
 
-    // Light mode colors
     const lightModeOverrides =
       settings.colorMode === 'light'
         ? `
@@ -77,15 +76,14 @@ export function Layout() {
    * ================================
    * EXAM PAGE
    * ================================
-   *
-   * Navbar आणि Footer hide.
-   * overflow-y-auto मुळे Exam setup scroll होईल.
    */
 
   if (isExamPage) {
     return (
-      <div className="fixed inset-0 overflow-y-auto overflow-x-hidden bg-slate-950 text-slate-50">
-        <Outlet />
+      <div className="fixed inset-0 overflow-y-auto overflow-x-hidden bg-slate-950 text-slate-50 transition-colors duration-300">
+        <div className="min-h-full w-full">
+          <Outlet />
+        </div>
       </div>
     );
   }
@@ -97,16 +95,35 @@ export function Layout() {
    */
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-900 text-slate-50 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-slate-900 text-slate-50 transition-colors duration-300">
 
+      {/* NAVBAR */}
       <Navbar />
 
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col">
+      {/* MAIN CONTENT */}
+      <main className="relative flex-1 w-full">
 
-        <Outlet />
+        {/* Subtle background glow */}
+        <div
+          className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+          aria-hidden="true"
+        >
+          <div className="absolute -top-32 left-1/4 w-96 h-96 rounded-full bg-yellow-500/5 blur-3xl" />
+
+          <div className="absolute top-1/2 -right-32 w-96 h-96 rounded-full bg-blue-500/5 blur-3xl" />
+
+          <div className="absolute -bottom-32 left-10 w-80 h-80 rounded-full bg-purple-500/5 blur-3xl" />
+        </div>
+
+        <div className="w-full max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-10">
+
+          <Outlet />
+
+        </div>
 
       </main>
 
+      {/* FOOTER */}
       <Footer />
 
     </div>
