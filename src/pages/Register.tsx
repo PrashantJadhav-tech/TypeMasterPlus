@@ -191,7 +191,7 @@ export function Register() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Enter username"
-                    className="pro-input w-full pl-11"
+                    className="pro-input w-full !pl-12"
                   />
                 </div>
               </div>
@@ -216,7 +216,7 @@ export function Register() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="pro-input w-full pl-11"
+                    className="pro-input w-full !pl-12"
                   />
                 </div>
               </div>
@@ -241,7 +241,7 @@ export function Register() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Minimum 6 characters"
-                    className="pro-input w-full pl-11 pr-12"
+                    className="pro-input w-full !pl-12 !pr-12"
                   />
 
                   <button
@@ -319,6 +319,7 @@ export function Register() {
               >
                 Sign in to your account
               </Link>
+
             </form>
           </div>
 

@@ -171,11 +171,14 @@ export function Passages() {
 
   return (
     <div className="page-enter w-full max-w-7xl mx-auto py-4 sm:py-6 lg:py-8">
-      {/* Header */}
+
+      {/* HEADER */}
       <div className="mb-8">
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+
           <div>
             <div className="flex items-center gap-3 mb-3">
+
               <div className="w-11 h-11 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-yellow-400" />
               </div>
@@ -184,6 +187,7 @@ export function Passages() {
                 <Sparkles className="w-3.5 h-3.5" />
                 Typing Library
               </span>
+
             </div>
 
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
@@ -203,13 +207,16 @@ export function Passages() {
             <Plus className="w-5 h-5" />
             New Passage
           </button>
+
         </div>
       </div>
 
-      {/* Library Stats */}
+      {/* LIBRARY STATS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+
         <div className="pro-card p-4">
           <div className="flex items-center gap-3">
+
             <div className="w-9 h-9 rounded-xl bg-yellow-500/10 flex items-center justify-center">
               <FileText className="w-4 h-4 text-yellow-400" />
             </div>
@@ -218,15 +225,18 @@ export function Passages() {
               <p className="text-xs text-slate-500 uppercase tracking-wider">
                 Passages
               </p>
+
               <p className="text-xl font-bold text-white">
                 {passages.length}
               </p>
             </div>
+
           </div>
         </div>
 
         <div className="pro-card p-4">
           <div className="flex items-center gap-3">
+
             <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
               <BookOpen className="w-4 h-4 text-blue-400" />
             </div>
@@ -235,15 +245,18 @@ export function Passages() {
               <p className="text-xs text-slate-500 uppercase tracking-wider">
                 Categories
               </p>
+
               <p className="text-xl font-bold text-white">
                 {categories.length}
               </p>
             </div>
+
           </div>
         </div>
 
         <div className="pro-card p-4">
           <div className="flex items-center gap-3">
+
             <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-emerald-400" />
             </div>
@@ -252,15 +265,18 @@ export function Passages() {
               <p className="text-xs text-slate-500 uppercase tracking-wider">
                 Easy
               </p>
+
               <p className="text-xl font-bold text-white">
                 {passages.filter((p) => p.difficulty === 'Easy').length}
               </p>
             </div>
+
           </div>
         </div>
 
         <div className="pro-card p-4">
           <div className="flex items-center gap-3">
+
             <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center">
               <SlidersHorizontal className="w-4 h-4 text-red-400" />
             </div>
@@ -269,42 +285,53 @@ export function Passages() {
               <p className="text-xs text-slate-500 uppercase tracking-wider">
                 Hard
               </p>
+
               <p className="text-xl font-bold text-white">
                 {passages.filter((p) => p.difficulty === 'Hard').length}
               </p>
             </div>
+
           </div>
         </div>
+
       </div>
 
-      {/* Filters */}
+      {/* FILTERS */}
       <div className="pro-card p-4 sm:p-5 mb-8">
+
         <div className="flex items-center gap-2 mb-4">
           <SlidersHorizontal className="w-4 h-4 text-yellow-400" />
+
           <span className="text-sm font-semibold text-white">
             Search & Filters
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          {/* Search */}
-          <div className="relative md:col-span-2 xl:col-span-2">
-  {!search && (
-    <Search className="w-5 h-5 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-  )}
 
-  <input
-    type="text"
-    placeholder="Search by title or passage text..."
-    value={search}
-    onChange={(e) => setSearch(e.target.value)}
-    className={cn(
-      'pro-input transition-all',
-      search ? 'pl-4' : 'pl-11'
-    )}
-  />
-</div>
-          {/* Category */}
+          {/* SEARCH */}
+          <div className="relative md:col-span-2 xl:col-span-2">
+
+            {!search && (
+              <Search
+                className="w-5 h-5 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none z-10"
+              />
+            )}
+
+            <input
+              type="text"
+              placeholder="Search by title or passage text..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={cn(
+                'pro-input w-full transition-all',
+                search ? '!pl-4' : '!pl-12'
+              )}
+            />
+
+          </div>
+
+          {/* CATEGORY */}
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -319,7 +346,7 @@ export function Passages() {
             ))}
           </select>
 
-          {/* Difficulty */}
+          {/* DIFFICULTY */}
           <select
             value={difficultyFilter}
             onChange={(e) => setDifficultyFilter(e.target.value)}
@@ -330,10 +357,12 @@ export function Passages() {
             <option value="Medium">Medium</option>
             <option value="Hard">Hard</option>
           </select>
+
         </div>
 
         {(search || categoryFilter || difficultyFilter) && (
           <div className="mt-4 flex items-center justify-between gap-3">
+
             <p className="text-xs text-slate-500">
               Showing{' '}
               <span className="text-slate-300 font-semibold">
@@ -352,22 +381,31 @@ export function Passages() {
             >
               Clear filters
             </button>
+
           </div>
         )}
+
       </div>
 
-      {/* Passage Grid */}
+      {/* PASSAGE GRID */}
       {filteredPassages.length > 0 ? (
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
           {filteredPassages.map((p) => (
+
             <div
               key={p.id}
               className="group pro-card p-5 sm:p-6 hover:border-slate-600 transition-all duration-300"
             >
-              {/* Card Header */}
+
+              {/* CARD HEADER */}
               <div className="flex items-start justify-between gap-4 mb-5">
+
                 <div className="min-w-0">
+
                   <div className="flex flex-wrap items-center gap-2 mb-3">
+
                     <span className="text-[11px] uppercase tracking-wider font-bold text-slate-500">
                       {p.category}
                     </span>
@@ -380,15 +418,18 @@ export function Passages() {
                     >
                       {p.difficulty}
                     </span>
+
                   </div>
 
                   <h3 className="text-xl font-bold text-white group-hover:text-yellow-400 transition-colors truncate">
                     {p.title}
                   </h3>
+
                 </div>
 
-                {/* Edit/Delete */}
+                {/* EDIT / DELETE */}
                 <div className="flex items-center gap-1.5 shrink-0">
+
                   <button
                     onClick={() => handleOpenModal(p)}
                     className="w-9 h-9 rounded-xl border border-slate-700 bg-slate-900/70 text-slate-400 hover:text-white hover:border-slate-600 hover:bg-slate-800 transition-all flex items-center justify-center"
@@ -404,11 +445,14 @@ export function Passages() {
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
+
                 </div>
+
               </div>
 
-              {/* Passage Preview */}
+              {/* PASSAGE PREVIEW */}
               <div className="rounded-2xl border border-slate-700/70 bg-slate-950/50 p-4 sm:p-5 mb-5">
+
                 <p
                   className={cn(
                     'text-slate-300 leading-relaxed font-serif line-clamp-4',
@@ -417,15 +461,20 @@ export function Passages() {
                 >
                   "{p.text}"
                 </p>
+
               </div>
 
-              {/* Card Footer */}
+              {/* CARD FOOTER */}
               <div className="flex items-center justify-between gap-4">
+
                 <div className="flex items-center gap-2 text-xs text-slate-500">
+
                   <FileText className="w-4 h-4" />
+
                   <span className="font-mono">
                     {p.text.length.toLocaleString()} characters
                   </span>
+
                 </div>
 
                 <button
@@ -435,13 +484,20 @@ export function Passages() {
                   <Play className="w-4 h-4" />
                   Practice
                 </button>
+
               </div>
+
             </div>
+
           ))}
+
         </div>
+
       ) : (
-        /* Empty State */
+
+        /* EMPTY STATE */
         <div className="pro-card py-16 px-6 text-center">
+
           <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mb-5">
             <Search className="w-7 h-7 text-slate-500" />
           </div>
@@ -463,16 +519,23 @@ export function Passages() {
               Clear Filters
             </button>
           )}
+
         </div>
+
       )}
 
-      {/* Modal */}
+      {/* MODAL */}
       {isModalOpen && (
+
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md">
+
           <div className="w-full max-w-2xl max-h-[92vh] overflow-hidden rounded-3xl border border-slate-700 bg-slate-900 shadow-2xl">
-            {/* Modal Header */}
+
+            {/* MODAL HEADER */}
             <div className="flex items-center justify-between gap-4 px-5 sm:px-6 py-5 border-b border-slate-800">
+
               <div>
+
                 <p className="text-xs uppercase tracking-widest text-yellow-400 font-bold mb-1">
                   Passage Library
                 </p>
@@ -480,6 +543,7 @@ export function Passages() {
                 <h2 className="text-xl sm:text-2xl font-bold text-white">
                   {editingId ? 'Edit Passage' : 'Create New Passage'}
                 </h2>
+
               </div>
 
               <button
@@ -490,16 +554,20 @@ export function Passages() {
               >
                 <X className="w-5 h-5" />
               </button>
+
             </div>
 
-            {/* Modal Form */}
+            {/* MODAL FORM */}
             <form
               onSubmit={handleSave}
               className="p-5 sm:p-6 overflow-y-auto max-h-[calc(92vh-90px)]"
             >
+
               <div className="space-y-5">
-                {/* Title */}
+
+                {/* TITLE */}
                 <div>
+
                   <label className="block text-sm font-semibold text-slate-300 mb-2">
                     Passage Title
                   </label>
@@ -517,11 +585,14 @@ export function Passages() {
                     placeholder="Enter passage title"
                     className="pro-input"
                   />
+
                 </div>
 
-                {/* Category + Difficulty */}
+                {/* CATEGORY + DIFFICULTY */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
                   <div>
+
                     <label className="block text-sm font-semibold text-slate-300 mb-2">
                       Category
                     </label>
@@ -539,9 +610,11 @@ export function Passages() {
                       placeholder="e.g. General"
                       className="pro-input"
                     />
+
                   </div>
 
                   <div>
+
                     <label className="block text-sm font-semibold text-slate-300 mb-2">
                       Difficulty
                     </label>
@@ -563,12 +636,16 @@ export function Passages() {
                       <option value="Medium">Medium</option>
                       <option value="Hard">Hard</option>
                     </select>
+
                   </div>
+
                 </div>
 
-                {/* Text */}
+                {/* TEXT */}
                 <div>
+
                   <div className="flex items-center justify-between mb-2">
+
                     <label className="text-sm font-semibold text-slate-300">
                       Passage Content
                     </label>
@@ -576,6 +653,7 @@ export function Passages() {
                     <span className="text-xs text-slate-500 font-mono">
                       {formData.text.length.toLocaleString()} characters
                     </span>
+
                   </div>
 
                   <textarea
@@ -591,10 +669,12 @@ export function Passages() {
                     placeholder="Type or paste your passage here..."
                     className="pro-input resize-none font-mono leading-relaxed"
                   />
+
                 </div>
 
-                {/* Buttons */}
+                {/* BUTTONS */}
                 <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
@@ -610,12 +690,19 @@ export function Passages() {
                     <Plus className="w-4 h-4" />
                     {editingId ? 'Save Changes' : 'Create Passage'}
                   </button>
+
                 </div>
+
               </div>
+
             </form>
+
           </div>
+
         </div>
+
       )}
+
     </div>
   );
 }

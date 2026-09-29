@@ -119,6 +119,7 @@ export function ResetPassword() {
                   <p className="text-sm font-semibold text-white">
                     Secure password
                   </p>
+
                   <p className="text-xs text-slate-500">
                     Use at least 6 characters.
                   </p>
@@ -134,6 +135,7 @@ export function ResetPassword() {
                   <p className="text-sm font-semibold text-white">
                     Protected account
                   </p>
+
                   <p className="text-xs text-slate-500">
                     Your password is securely updated.
                   </p>
@@ -207,14 +209,16 @@ export function ResetPassword() {
               </label>
 
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none" />
+                <Lock
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none"
+                />
 
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pro-input w-full pl-12 pr-12"
+                  className="pro-input w-full !pl-12 !pr-12"
                   placeholder="Enter new password"
                   autoComplete="new-password"
                 />
@@ -259,14 +263,16 @@ export function ResetPassword() {
               </label>
 
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none" />
+                <Lock
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none"
+                />
 
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
                   id="confirmPassword"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pro-input w-full pl-12 pr-12"
+                  className="pro-input w-full !pl-12 !pr-12"
                   placeholder="Confirm new password"
                   autoComplete="new-password"
                 />
@@ -323,6 +329,7 @@ export function ResetPassword() {
           {/* SECURITY NOTE */}
           <div className="mt-8 pt-6 border-t border-slate-700/50">
             <div className="flex items-start gap-3">
+
               <ShieldCheck className="w-5 h-5 text-green-400 mt-0.5 shrink-0" />
 
               <div>
@@ -335,6 +342,7 @@ export function ResetPassword() {
                   anyone.
                 </p>
               </div>
+
             </div>
           </div>
 

@@ -164,7 +164,7 @@ export function Login() {
                     placeholder="you@example.com"
                     autoComplete="email"
                     required
-                    className="pro-input w-full pl-11"
+                    className="pro-input w-full !pl-12"
                   />
                 </div>
               </div>
@@ -199,7 +199,7 @@ export function Login() {
                     placeholder="Enter your password"
                     autoComplete="current-password"
                     required
-                    className="pro-input w-full pl-11 pr-12"
+                    className="pro-input w-full !pl-12 !pr-12"
                   />
 
                   <button

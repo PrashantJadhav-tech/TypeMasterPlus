@@ -57,6 +57,7 @@ export function ForgotPassword() {
           <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-yellow-500/5 rounded-full blur-3xl" />
 
           <div className="relative z-10">
+
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 mb-6">
               <KeyRound className="w-7 h-7 text-yellow-400" />
             </div>
@@ -78,14 +79,17 @@ export function ForgotPassword() {
             </p>
 
             <div className="mt-8 space-y-4">
+
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center">
                   <ShieldCheck className="w-5 h-5 text-green-400" />
                 </div>
+
                 <div>
                   <p className="text-sm font-semibold text-white">
                     Secure recovery
                   </p>
+
                   <p className="text-xs text-slate-500">
                     Your account remains protected.
                   </p>
@@ -96,15 +100,18 @@ export function ForgotPassword() {
                 <div className="w-9 h-9 rounded-lg bg-yellow-500/10 flex items-center justify-center">
                   <Mail className="w-5 h-5 text-yellow-400" />
                 </div>
+
                 <div>
                   <p className="text-sm font-semibold text-white">
                     Email verification
                   </p>
+
                   <p className="text-xs text-slate-500">
                     Reset instructions are sent to your email.
                   </p>
                 </div>
               </div>
+
             </div>
           </div>
         </div>
@@ -119,6 +126,7 @@ export function ForgotPassword() {
             </div>
           </div>
 
+          {/* BACK TO LOGIN */}
           <button
             type="button"
             onClick={() => navigate('/login')}
@@ -157,6 +165,7 @@ export function ForgotPassword() {
             <div className="mb-6 rounded-xl border border-green-500/30 bg-green-500/10 p-4">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 shrink-0" />
+
                 <p className="text-sm text-green-400 leading-5">
                   {message}
                 </p>
@@ -176,14 +185,16 @@ export function ForgotPassword() {
               </label>
 
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none" />
+                <Mail
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none"
+                />
 
                 <input
                   type="email"
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pro-input w-full pl-12 pr-4"
+                  className="pro-input w-full !pl-12 !pr-4"
                   placeholder="Enter your registered email"
                   autoComplete="email"
                   required
@@ -213,21 +224,25 @@ export function ForgotPassword() {
                 </>
               )}
             </button>
+
           </form>
 
           {/* SECURITY NOTE */}
           <div className="mt-8 pt-6 border-t border-slate-700/50">
             <div className="flex items-start gap-3">
+
               <ShieldCheck className="w-5 h-5 text-green-400 mt-0.5 shrink-0" />
 
               <div>
                 <p className="text-sm font-semibold text-slate-300">
                   Your security matters
                 </p>
+
                 <p className="text-xs text-slate-500 mt-1 leading-5">
                   Never share your password or reset link with anyone.
                 </p>
               </div>
+
             </div>
           </div>
 
