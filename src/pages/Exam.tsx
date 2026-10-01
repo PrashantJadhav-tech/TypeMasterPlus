@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useTypingTest } from '../hooks/useTypingTest';
@@ -6,6 +6,7 @@ import { SplitTypingArea } from '../components/typing/SplitTypingArea';
 import { Results } from '../components/typing/Results';
 import { usePassages } from '../contexts/PassagesContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
 
 import {
   ArrowLeft,
@@ -28,9 +29,49 @@ import {
 
 const EXAM_DURATION = 420; // 7 minutes
 
+// Shared with Practice.tsx: Practice + Quick Test + Exam = 3 free tests total.
+const FREE_TEST_LIMIT = 3;
+const FREE_TEST_COUNT_KEY = 'type-master-plus-free-test-count';
+
 export default function Exam() {
   const navigate = useNavigate();
   const { settings } = useSettings();
+  const { user } = useAuth();
+
+  const [freeTestsCompleted, setFreeTestsCompleted] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0;
+
+    const saved = Number(
+      localStorage.getItem(FREE_TEST_COUNT_KEY) || '0'
+    );
+
+    return Number.isFinite(saved)
+      ? Math.min(Math.max(saved, 0), FREE_TEST_LIMIT)
+      : 0;
+  });
+
+  const countedFinishedTest = useRef(false);
+
+  const hasFreeTestsLeft =
+    Boolean(user) || freeTestsCompleted < FREE_TEST_LIMIT;
+
+  const requireExamAccess = () => {
+    if (user) return true;
+
+    if (freeTestsCompleted >= FREE_TEST_LIMIT) {
+      navigate('/register', {
+        state: {
+          from: '/exam',
+          message:
+            'You have completed your 3 free tests. Please sign up and sign in to continue.'
+        }
+      });
+
+      return false;
+    }
+
+    return true;
+  };
 
   const {
     passages,
@@ -151,6 +192,11 @@ export default function Exam() {
   };
 
   const handleStartExam = async () => {
+    // Guest users get only 3 free tests across Practice, Quick Test and Exam.
+    if (!requireExamAccess()) return;
+
+    countedFinishedTest.current = false;
+
     reset();
     setIsSetup(false);
 
@@ -316,6 +362,35 @@ export default function Exam() {
     ] || themeClasses.yellow;
 
   /*
+   * Count a completed guest exam in the same shared counter
+   * used by Practice.tsx.
+   *
+   * Important:
+   * - Starting an exam does NOT consume a test.
+   * - Leaving/cancelling an exam does NOT consume a test.
+   * - Only a normally finished exam counts.
+   * - Signed-in users are unlimited.
+   */
+  useEffect(() => {
+    if (status !== 'finished') return;
+
+    if (user) {
+      countedFinishedTest.current = false;
+      return;
+    }
+
+    if (countedFinishedTest.current) return;
+
+    countedFinishedTest.current = true;
+
+    setFreeTestsCompleted((current) => {
+      const next = Math.min(current + 1, FREE_TEST_LIMIT);
+      localStorage.setItem(FREE_TEST_COUNT_KEY, String(next));
+      return next;
+    });
+  }, [status, user]);
+
+  /*
    * =====================================================
    * RESULT
    * =====================================================
@@ -469,6 +544,25 @@ export default function Exam() {
             </p>
 
           </div>
+
+          {/* Free test access banner */}
+          {!user && (
+            <div className="mb-6 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4">
+              <div className="flex items-start gap-3">
+                <Lock className="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-bold text-yellow-300">
+                    Free Exam Access
+                  </p>
+                  <p className="text-sm text-slate-300 mt-1">
+                    You have {Math.max(0, FREE_TEST_LIMIT - freeTestsCompleted)} free test
+                    {Math.max(0, FREE_TEST_LIMIT - freeTestsCompleted) === 1 ? '' : 's'} left.
+                    Practice, Quick Test and Exam share the same 3-test limit.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Main setup card */}
 
@@ -811,8 +905,14 @@ export default function Exam() {
               onClick={handleStartExam}
               className={`w-full sm:w-auto px-10 py-4 rounded-xl ${activeTheme.bg} ${activeTheme.hover} text-white font-black text-lg transition shadow-xl ${activeTheme.shadow} flex items-center justify-center gap-3`}
             >
-              <Keyboard className="w-5 h-5" />
-              Start 7-Minute Exam
+              {hasFreeTestsLeft || user ? (
+                <Keyboard className="w-5 h-5" />
+              ) : (
+                <Lock className="w-5 h-5" />
+              )}
+              {hasFreeTestsLeft || user
+                ? 'Start 7-Minute Exam'
+                : 'Sign Up to Continue'}
             </button>
 
           </div>

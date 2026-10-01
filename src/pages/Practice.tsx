@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useTypingTest } from '../hooks/useTypingTest';
@@ -25,6 +25,9 @@ import {
 type Language = 'english' | 'marathi';
 type TestMode = 'practice' | 'quick';
 
+const FREE_TEST_LIMIT = 3;
+const FREE_TEST_COUNT_KEY = 'type-master-plus-free-test-count';
+
 type HistoryRow = {
   wpm: number | null;
   accuracy: number | null;
@@ -40,6 +43,45 @@ export function Practice() {
   } = usePassages();
 
   const { user } = useAuth();
+
+  // -----------------------------------------
+  // FREE TEST LIMIT
+  // -----------------------------------------
+
+  const [freeTestsCompleted, setFreeTestsCompleted] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0;
+
+    const saved = Number(
+      localStorage.getItem(FREE_TEST_COUNT_KEY) || '0'
+    );
+
+    return Number.isFinite(saved)
+      ? Math.min(Math.max(saved, 0), FREE_TEST_LIMIT)
+      : 0;
+  });
+
+  // Prevent the same finished test from being counted more than once.
+  const countedFinishedTest = useRef(false);
+
+  const hasFreeTestsLeft =
+    Boolean(user) || freeTestsCompleted < FREE_TEST_LIMIT;
+
+  const requireSignUp = () => {
+    if (user) return true;
+
+    if (freeTestsCompleted >= FREE_TEST_LIMIT) {
+      navigate('/register', {
+        state: {
+          from: '/practice',
+          message:
+            'You have completed your 3 free tests. Please sign up and sign in to continue.'
+        }
+      });
+      return false;
+    }
+
+    return true;
+  };
 
   // -----------------------------------------
   // LANGUAGE
@@ -212,10 +254,39 @@ export function Practice() {
   // -----------------------------------------
 
   useEffect(() => {
-    if (status === 'finished') {
-      loadHistoryStats();
+    if (status !== 'finished') {
+      return;
     }
-  }, [status]);
+
+    loadHistoryStats();
+
+    // Logged-in users have no free-test restriction.
+    if (user) {
+      countedFinishedTest.current = false;
+      return;
+    }
+
+    // Count each completed guest test exactly once.
+    if (countedFinishedTest.current) {
+      return;
+    }
+
+    countedFinishedTest.current = true;
+
+    setFreeTestsCompleted((current) => {
+      const next = Math.min(
+        current + 1,
+        FREE_TEST_LIMIT
+      );
+
+      localStorage.setItem(
+        FREE_TEST_COUNT_KEY,
+        String(next)
+      );
+
+      return next;
+    });
+  }, [status, user]);
 
   // -----------------------------------------
   // LANGUAGE CHANGE
@@ -325,6 +396,11 @@ export function Practice() {
   // -----------------------------------------
 
   const handleStartPractice = () => {
+    if (!requireSignUp()) {
+      return;
+    }
+
+    countedFinishedTest.current = false;
     setTestMode('practice');
     reset();
     setIsSetup(false);
@@ -335,6 +411,10 @@ export function Practice() {
   // -----------------------------------------
 
   const handleStartQuickTest = () => {
+    if (!requireSignUp()) {
+      return;
+    }
+
     if (
       filteredPassages.length === 0
     ) {
@@ -360,6 +440,7 @@ export function Practice() {
       );
     }
 
+    countedFinishedTest.current = false;
     setTestMode('quick');
     reset();
     setIsSetup(false);
@@ -596,6 +677,29 @@ export function Practice() {
 
           </div>
 
+          {/* FREE TEST LIMIT */}
+
+          {!user && (
+            <div className="mb-6 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <p className="font-bold text-yellow-400">
+                    Free Practice
+                  </p>
+                  <p className="text-sm text-slate-300 mt-1">
+                    {freeTestsCompleted < FREE_TEST_LIMIT
+                      ? `${freeTestsCompleted} of ${FREE_TEST_LIMIT} free tests completed`
+                      : 'Your 3 free tests are completed. Sign up and sign in to continue.'}
+                  </p>
+                </div>
+
+                <div className="text-sm font-bold text-white whitespace-nowrap">
+                  {freeTestsCompleted}/{FREE_TEST_LIMIT}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* QUICK TEST */}
 
           <div className="bg-slate-800/70 border border-slate-700 rounded-3xl p-6 md:p-8 shadow-xl mb-8">
@@ -673,14 +777,18 @@ export function Practice() {
                 handleStartQuickTest
               }
               disabled={
-                filteredPassages.length ===
-                0
+                filteredPassages.length === 0 ||
+                !hasFreeTestsLeft
               }
               className="w-full mt-5 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 font-bold py-3 px-6 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
             >
               <Zap className="w-5 h-5" />
 
-              Start Quick Test
+              {user
+                ? 'Start Quick Test'
+                : freeTestsCompleted >= FREE_TEST_LIMIT
+                ? 'Sign Up to Continue'
+                : 'Start Quick Test'}
             </button>
 
           </div>
@@ -875,12 +983,16 @@ export function Practice() {
                 handleStartPractice
               }
               disabled={
-                filteredPassages.length ===
-                0
+                filteredPassages.length === 0 ||
+                !hasFreeTestsLeft
               }
               className="w-full bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 font-bold py-3 px-6 rounded-xl transition-all shadow-lg"
             >
-              Start Passage Practice
+              {user
+                ? 'Start Passage Practice'
+                : freeTestsCompleted >= FREE_TEST_LIMIT
+                ? 'Sign Up to Continue'
+                : 'Start Passage Practice'}
             </button>
 
           </div>
