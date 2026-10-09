@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,6 +12,7 @@ import {
   UserPlus,
   CheckCircle2,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 
 export function Register() {
@@ -24,30 +26,86 @@ export function Register() {
 
   const { register } = useAuth();
 
+  const hasMinLength = password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
+
+  const passedRules = [
+    hasMinLength,
+    hasUppercase,
+    hasLowercase,
+    hasNumber,
+    hasSpecialChar,
+  ].filter(Boolean).length;
+
+  const isStrongPassword = passedRules === 5;
+
+  const strength = !password
+    ? ''
+    : isStrongPassword
+      ? 'Strong'
+      : passedRules >= 3
+        ? 'Medium'
+        : 'Weak';
+
+  const suggestStrongPassword = () => {
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower = 'abcdefghijkmnopqrstuvwxyz';
+    const numbers = '23456789';
+    const symbols = '!@#$%&*?';
+    const all = upper + lower + numbers + symbols;
+
+    const pick = (chars: string) =>
+      chars[Math.floor(Math.random() * chars.length)];
+
+    const chars = [
+      pick(upper),
+      pick(lower),
+      pick(numbers),
+      pick(symbols),
+    ];
+
+    while (chars.length < 14) {
+      chars.push(pick(all));
+    }
+
+    for (let i = chars.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [chars[i], chars[j]] = [chars[j], chars[i]];
+    }
+
+    setPassword(chars.join(''));
+    setShowPassword(true);
+    setError('');
+    setMessage('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     setError('');
     setMessage('');
 
-    if (!username || !email || !password) {
+    if (!username.trim() || !email.trim() || !password) {
       setError('Please fill in all fields.');
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (!isStrongPassword) {
+      setError(
+        'Weak password! Use at least 8 characters, uppercase, lowercase, a number and a special character.'
+      );
       return;
     }
 
     setLoading(true);
 
     try {
-      const result = await register(username, email, password);
+      const result = await register(username.trim(), email.trim(), password);
 
       if (result.error) {
         setError(result.error);
-        setLoading(false);
         return;
       }
 
@@ -55,14 +113,13 @@ export function Register() {
         setMessage(
           'Account created successfully! Please check your Gmail and confirm your email.'
         );
-        setLoading(false);
         return;
       }
 
       setMessage('Account created successfully!');
-      setLoading(false);
-    } catch (err) {
+    } catch {
       setError('Something went wrong. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
@@ -74,7 +131,6 @@ export function Register() {
         {/* LEFT SIDE - BRAND */}
         <div className="hidden lg:block">
           <div className="max-w-lg">
-
             <div className="mb-6 flex items-center gap-3">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-yellow-500/10 text-yellow-400">
                 <Keyboard className="h-7 w-7" />
@@ -84,7 +140,6 @@ export function Register() {
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-400">
                   Type Master Plus
                 </p>
-
                 <p className="mt-1 text-sm text-slate-500">
                   Professional Typing Platform
                 </p>
@@ -108,12 +163,10 @@ export function Register() {
                 title="Track your progress"
                 description="Keep your typing history and performance in one place."
               />
-
               <Feature
                 title="Practice & Exam modes"
                 description="Improve your speed with structured typing tests."
               />
-
               <Feature
                 title="Achievements & XP"
                 description="Build your streak and unlock typing milestones."
@@ -124,12 +177,10 @@ export function Register() {
 
         {/* REGISTER CARD */}
         <div className="mx-auto w-full max-w-md">
-
           <div className="pro-card overflow-hidden">
 
             {/* CARD HEADER */}
             <div className="border-b border-slate-700/60 p-6 text-center sm:p-8">
-
               <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-yellow-500/10 text-yellow-400">
                 <UserPlus className="h-7 w-7" />
               </div>
@@ -137,17 +188,13 @@ export function Register() {
               <h2 className="text-3xl font-black tracking-tight text-white">
                 Create Account
               </h2>
-
               <p className="mt-2 text-sm leading-relaxed text-slate-400">
                 Start your typing improvement journey today.
               </p>
             </div>
 
             {/* FORM */}
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-5 p-6 sm:p-8"
-            >
+            <form onSubmit={handleSubmit} className="space-y-5 p-6 sm:p-8">
 
               {/* ERROR */}
               {error && (
@@ -163,7 +210,6 @@ export function Register() {
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
-
                     <p className="text-sm leading-relaxed text-emerald-400">
                       {message}
                     </p>
@@ -182,7 +228,6 @@ export function Register() {
 
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
-
                   <input
                     id="username"
                     type="text"
@@ -207,7 +252,6 @@ export function Register() {
 
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
-
                   <input
                     id="email"
                     type="email"
@@ -239,17 +283,19 @@ export function Register() {
                     required
                     autoComplete="new-password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Minimum 6 characters"
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setError('');
+                      setMessage('');
+                    }}
+                    placeholder="Create a strong password"
                     className="pro-input w-full !pl-12 !pr-12"
                   />
 
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    aria-label={
-                      showPassword ? 'Hide password' : 'Show password'
-                    }
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                     className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center text-slate-500 transition hover:text-yellow-400"
                   >
                     {showPassword ? (
@@ -260,26 +306,69 @@ export function Register() {
                   </button>
                 </div>
 
-                {/* PASSWORD REQUIREMENT */}
-                <div className="mt-2 flex items-center gap-2">
-                  <ShieldCheck
-                    className={`h-4 w-4 ${
-                      password.length >= 6
-                        ? 'text-emerald-400'
-                        : 'text-slate-600'
-                    }`}
-                  />
+                {/* PASSWORD STRENGTH */}
+                {password && (
+                  <div className="mt-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs text-slate-400">
+                        Password strength
+                      </span>
 
-                  <span
-                    className={`text-xs ${
-                      password.length >= 6
-                        ? 'text-emerald-400'
-                        : 'text-slate-500'
-                    }`}
-                  >
-                    At least 6 characters
-                  </span>
+                      <span
+                        className={`text-xs font-bold ${
+                          strength === 'Strong'
+                            ? 'text-emerald-400'
+                            : strength === 'Medium'
+                              ? 'text-yellow-400'
+                              : 'text-red-400'
+                        }`}
+                      >
+                        {strength}
+                      </span>
+                    </div>
+
+                    <div className="flex gap-1.5">
+                      {[1, 2, 3, 4, 5].map((level) => (
+                        <div
+                          key={level}
+                          className={`h-1.5 flex-1 rounded-full ${
+                            level <= passedRules
+                              ? strength === 'Strong'
+                                ? 'bg-emerald-400'
+                                : strength === 'Medium'
+                                  ? 'bg-yellow-400'
+                                  : 'bg-red-400'
+                              : 'bg-slate-700'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* PASSWORD REQUIREMENTS */}
+                <div className="mt-3 space-y-2">
+                  <PasswordRule passed={hasMinLength} text="At least 8 characters" />
+                  <PasswordRule passed={hasUppercase} text="One uppercase letter (A-Z)" />
+                  <PasswordRule passed={hasLowercase} text="One lowercase letter (a-z)" />
+                  <PasswordRule passed={hasNumber} text="One number (0-9)" />
+                  <PasswordRule passed={hasSpecialChar} text="One special character (!@#$% etc.)" />
                 </div>
+
+                {/* SUGGEST STRONG PASSWORD */}
+                <button
+                  type="button"
+                  onClick={suggestStrongPassword}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm font-bold text-yellow-400 transition hover:border-yellow-400/60 hover:bg-yellow-500/15"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Suggest Strong Password
+                </button>
+
+                <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                  Use the suggestion or create your own password that meets
+                  all five requirements.
+                </p>
               </div>
 
               {/* SUBMIT */}
@@ -304,11 +393,9 @@ export function Register() {
               {/* DIVIDER */}
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-slate-700" />
-
                 <span className="text-xs text-slate-500">
                   ALREADY A MEMBER?
                 </span>
-
                 <div className="h-px flex-1 bg-slate-700" />
               </div>
 
@@ -319,7 +406,6 @@ export function Register() {
               >
                 Sign in to your account
               </Link>
-
             </form>
           </div>
 
@@ -328,22 +414,40 @@ export function Register() {
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-400">
               Type Master Plus
             </p>
-
             <p className="mt-1 text-xs text-slate-500">
               Improve • Practice • Track • Achieve
             </p>
           </div>
-
         </div>
       </div>
     </div>
   );
 }
 
-/* =========================
-   FEATURE ITEM
-========================= */
+/* PASSWORD REQUIREMENT ITEM */
+function PasswordRule({
+  passed,
+  text,
+}: {
+  passed: boolean;
+  text: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      {passed ? (
+        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+      ) : (
+        <ShieldCheck className="h-4 w-4 shrink-0 text-slate-600" />
+      )}
 
+      <span className={`text-xs ${passed ? 'text-emerald-400' : 'text-slate-500'}`}>
+        {text}
+      </span>
+    </div>
+  );
+}
+
+/* FEATURE ITEM */
 function Feature({
   title,
   description,
@@ -358,10 +462,7 @@ function Feature({
       </div>
 
       <div>
-        <h3 className="font-semibold text-white">
-          {title}
-        </h3>
-
+        <h3 className="font-semibold text-white">{title}</h3>
         <p className="mt-1 text-sm leading-relaxed text-slate-500">
           {description}
         </p>

@@ -1,0 +1,201 @@
+
+/* ==========================================
+   TYPE MASTER PLUS — PREMIUM DASHBOARD
+   Scoped UI-only styles
+========================================== */
+
+.dashboard-premium {
+  --dash-bg: #0b1120;
+  --dash-card: #111c30;
+  --dash-card-hover: #16243b;
+  --dash-border: rgba(148, 163, 184, 0.13);
+  --dash-yellow: #facc15;
+  --dash-text: #f8fafc;
+  --dash-muted: #94a3b8;
+
+  background:
+    radial-gradient(
+      ellipse at 8% 0%,
+      rgba(234, 179, 8, 0.075),
+      transparent 34%
+    ),
+    radial-gradient(
+      ellipse at 100% 20%,
+      rgba(59, 130, 246, 0.055),
+      transparent 32%
+    ),
+    var(--dash-bg);
+  color: var(--dash-text);
+}
+
+.dashboard-premium .pro-card,
+.dashboard-premium .stat-card {
+  position: relative;
+  border: 1px solid var(--dash-border);
+  border-radius: 18px;
+  background: linear-gradient(
+    145deg,
+    rgba(20, 32, 52, 0.98),
+    rgba(13, 23, 40, 0.98)
+  );
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.dashboard-premium .pro-card:hover,
+.dashboard-premium .stat-card:hover {
+  border-color: rgba(250, 204, 21, 0.25);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-premium .stat-card {
+  padding: 20px;
+  overflow: hidden;
+}
+
+.dashboard-premium .stat-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 2px;
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(250, 204, 21, 0.65),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.dashboard-premium .stat-card:hover::after {
+  opacity: 1;
+}
+
+.dashboard-premium .pro-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 11px 17px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease;
+}
+
+.dashboard-premium .pro-btn:hover {
+  transform: translateY(-2px);
+}
+
+.dashboard-premium .pro-btn-primary {
+  background: linear-gradient(135deg, #fde047, #eab308);
+  color: #111827;
+  border: 1px solid rgba(253, 224, 71, 0.7);
+  box-shadow: 0 5px 18px rgba(234, 179, 8, 0.12);
+}
+
+.dashboard-premium .pro-btn-primary:hover {
+  background: #fef08a;
+}
+
+.dashboard-premium .pro-btn-secondary {
+  color: #e2e8f0;
+  background: rgba(30, 41, 59, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.dashboard-premium .pro-btn-secondary:hover {
+  background: #1e293b;
+  border-color: rgba(250, 204, 21, 0.3);
+}
+
+.dashboard-premium .pro-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 11px;
+  border: 1px solid rgba(250, 204, 21, 0.2);
+  border-radius: 999px;
+  background: rgba(234, 179, 8, 0.075);
+  color: #fde047;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+}
+
+.dashboard-premium .pro-progress {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #263247;
+}
+
+.dashboard-premium .pro-progress > div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #eab308, #fde047);
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.2);
+  transition: width 350ms ease;
+}
+
+.dashboard-premium a:focus-visible {
+  outline: 2px solid #fde047;
+  outline-offset: 4px;
+}
+
+.dashboard-premium .pro-card a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.dashboard-premium .pro-card .rounded-xl.border {
+  transition:
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.dashboard-premium .pro-card .rounded-xl.border:hover {
+  border-color: rgba(250, 204, 21, 0.2);
+}
+
+.dashboard-premium .bg-slate-950\/60 {
+  background-color: rgba(7, 13, 25, 0.7);
+}
+
+@media (max-width: 640px) {
+  .dashboard-premium .stat-card {
+    padding: 15px;
+    border-radius: 15px;
+  }
+
+  .dashboard-premium .pro-card {
+    border-radius: 16px;
+  }
+
+  .dashboard-premium .pro-btn {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-premium *,
+  .dashboard-premium *::before,
+  .dashboard-premium *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-
 import {
   Keyboard,
   User,
@@ -44,14 +43,8 @@ export function Navbar() {
   const avatar = user?.avatarUrl || null;
 
   const getInitial = () => {
-    if (user?.username) {
-      return user.username.charAt(0).toUpperCase();
-    }
-
-    if (user?.email) {
-      return user.email.charAt(0).toUpperCase();
-    }
-
+    if (user?.username) return user.username.charAt(0).toUpperCase();
+    if (user?.email) return user.email.charAt(0).toUpperCase();
     return 'U';
   };
 
@@ -66,9 +59,12 @@ export function Navbar() {
     setProfileOpen(false);
   };
 
+  const isActive = (path: string) =>
+    location.pathname === path ||
+    (path !== '/' && location.pathname.startsWith(`${path}/`));
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-xl">
-      {/* TOP NAVBAR */}
       <div className="mx-auto max-w-[100rem] px-4 sm:px-6">
         <div className="flex min-h-[72px] items-center justify-between gap-4">
 
@@ -82,15 +78,13 @@ export function Navbar() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-yellow-500/20 bg-yellow-500/10 transition-all group-hover:bg-yellow-500/20">
                 <Keyboard className="h-5 w-5 text-yellow-400" />
               </div>
-
               <div className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-yellow-400 shadow-lg shadow-yellow-500/40" />
             </div>
 
             <div className="hidden sm:block">
-              <div className="font-black text-lg leading-none tracking-tight text-white">
+              <div className="text-lg font-black leading-none tracking-tight text-white">
                 TypeMaster<span className="text-yellow-400">Plus</span>
               </div>
-
               <div className="mt-1 text-[9px] uppercase tracking-[0.2em] text-slate-500">
                 Typing Platform
               </div>
@@ -101,13 +95,8 @@ export function Navbar() {
           <nav className="hidden flex-1 items-center justify-center gap-1 xl:flex">
             {navLinks.map((link) => {
               if (link.protected && !user) return null;
-
               const Icon = link.icon;
-
-              const isActive =
-                location.pathname === link.path ||
-                (link.path !== '/' &&
-                  location.pathname.startsWith(`${link.path}/`));
+              const active = isActive(link.path);
 
               return (
                 <Link
@@ -115,21 +104,14 @@ export function Navbar() {
                   to={link.path}
                   className={cn(
                     'relative flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
-                    isActive
+                    active
                       ? 'bg-yellow-500/10 text-yellow-400'
                       : 'text-slate-400 hover:bg-slate-800/70 hover:text-white'
                   )}
                 >
-                  <Icon
-                    className={cn(
-                      'h-4 w-4',
-                      isActive && 'text-yellow-400'
-                    )}
-                  />
-
+                  <Icon className={cn('h-4 w-4', active && 'text-yellow-400')} />
                   <span>{link.name}</span>
-
-                  {isActive && (
+                  {active && (
                     <span className="absolute -bottom-[1px] left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-yellow-400" />
                   )}
                 </Link>
@@ -139,7 +121,6 @@ export function Navbar() {
 
           {/* RIGHT SIDE */}
           <div className="flex shrink-0 items-center gap-2">
-
             {user ? (
               <div className="relative">
 
@@ -154,25 +135,18 @@ export function Navbar() {
                       : 'border-slate-800 bg-slate-900/70 hover:border-slate-700 hover:bg-slate-800'
                   )}
                 >
-                  {/* AVATAR */}
                   <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-yellow-500 text-sm font-black text-slate-950 ring-2 ring-slate-900">
                     {avatar ? (
-                      <img
-                        src={avatar}
-                        alt="Profile"
-                        className="h-full w-full object-cover"
-                      />
+                      <img src={avatar} alt="Profile" className="h-full w-full object-cover" />
                     ) : (
                       getInitial()
                     )}
                   </div>
 
-                  {/* USER INFO */}
                   <div className="hidden max-w-[150px] flex-col items-start md:flex">
                     <span className="max-w-full truncate text-sm font-semibold text-white">
                       {user.username}
                     </span>
-
                     <span className="max-w-full truncate text-[11px] text-slate-500">
                       {user.email}
                     </span>
@@ -188,47 +162,34 @@ export function Navbar() {
 
                 {/* PROFILE DROPDOWN */}
                 {profileOpen && (
-                  <div className="absolute right-0 top-full mt-3 w-80 overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-950 shadow-2xl shadow-black/40">
+                  <div className="absolute right-0 top-full mt-3 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-950 shadow-2xl shadow-black/40">
 
                     {/* ACCOUNT HEADER */}
                     <div className="border-b border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-4">
                       <div className="flex items-center gap-3">
-
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-yellow-500 font-black text-slate-950 ring-2 ring-yellow-500/20">
                           {avatar ? (
-                            <img
-                              src={avatar}
-                              alt="Profile"
-                              className="h-full w-full object-cover"
-                            />
+                            <img src={avatar} alt="Profile" className="h-full w-full object-cover" />
                           ) : (
                             getInitial()
                           )}
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-bold text-white">
-                            {user.username}
-                          </p>
-
-                          <p className="mt-0.5 truncate text-xs text-slate-500">
-                            {user.email}
-                          </p>
+                          <p className="truncate font-bold text-white">{user.username}</p>
+                          <p className="mt-0.5 truncate text-xs text-slate-500">{user.email}</p>
 
                           <div className="mt-2 flex items-center gap-1.5">
-
                             {user.isSuperAdmin ? (
                               <>
-                                <Crown className="h-3 w-3 text-yellow-400" />
-
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-yellow-400">
+                                <Crown className="h-3 w-3 text-purple-400" />
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-purple-400">
                                   Super Admin
                                 </span>
                               </>
                             ) : user.role === 'admin' ? (
                               <>
                                 <Crown className="h-3 w-3 text-yellow-400" />
-
                                 <span className="text-[10px] font-semibold uppercase tracking-wider text-yellow-400">
                                   Administrator
                                 </span>
@@ -236,110 +197,78 @@ export function Navbar() {
                             ) : (
                               <>
                                 <Sparkles className="h-3 w-3 text-slate-500" />
-
                                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                                   Member
                                 </span>
                               </>
                             )}
-
                           </div>
                         </div>
-
                       </div>
                     </div>
 
                     {/* MENU */}
                     <div className="p-2">
 
-                      {/* DASHBOARD */}
                       <Link
                         to="/dashboard"
-                        onClick={() => setProfileOpen(false)}
+                        onClick={handleNavigation}
                         className="flex items-center gap-3 rounded-xl px-3 py-3 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
                       >
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10">
                           <LayoutDashboard className="h-4 w-4 text-blue-400" />
                         </div>
-
                         <div>
-                          <p className="text-sm font-semibold">
-                            Dashboard
-                          </p>
-
-                          <p className="text-[11px] text-slate-500">
-                            View your progress
-                          </p>
+                          <p className="text-sm font-semibold">Dashboard</p>
+                          <p className="text-[11px] text-slate-500">View your progress</p>
                         </div>
                       </Link>
 
-                      {/* ADMIN DASHBOARD */}
+                      {/* ADMIN DASHBOARD: admins only */}
                       {user.role === 'admin' && (
                         <Link
                           to="/admin"
-                          onClick={() => setProfileOpen(false)}
+                          onClick={handleNavigation}
                           className="flex items-center gap-3 rounded-xl px-3 py-3 text-yellow-400 transition-all hover:bg-yellow-500/10"
                         >
                           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-500/10">
                             <Crown className="h-4 w-4 text-yellow-400" />
                           </div>
-
                           <div>
-                            <p className="text-sm font-semibold">
-                              Admin Dashboard
-                            </p>
-
-                            <p className="text-[11px] text-yellow-500/60">
-                              Manage platform
-                            </p>
+                            <p className="text-sm font-semibold">Admin Dashboard</p>
+                            <p className="text-[11px] text-yellow-500/60">Manage platform</p>
                           </div>
                         </Link>
                       )}
 
-                      {/* SUPER ADMIN PROFILE */}
-                      {user.isSuperAdmin && (
-                        <Link
-                          to="/super-admin-profile"
-                          onClick={() => setProfileOpen(false)}
-                          className="flex items-center gap-3 rounded-xl px-3 py-3 text-yellow-400 transition-all hover:bg-yellow-500/10"
-                        >
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-500/10">
-                            <Crown className="h-4 w-4 text-yellow-400" />
-                          </div>
+                      {/* SUPER ADMIN PROFILE: visible to every logged-in user */}
+                      <Link
+                        to="/super-admin-profile"
+                        onClick={handleNavigation}
+                        className="flex items-center gap-3 rounded-xl px-3 py-3 text-purple-300 transition-all hover:bg-purple-500/10"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/10">
+                          <Crown className="h-4 w-4 text-purple-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold">Super Admin Profile</p>
+                          <p className="text-[11px] text-slate-500">View profile information</p>
+                        </div>
+                      </Link>
 
-                          <div>
-                            <p className="text-sm font-semibold">
-                              Super Admin Profile
-                            </p>
-
-                            <p className="text-[11px] text-yellow-500/60">
-                              Super Admin information
-                            </p>
-                          </div>
-                        </Link>
-                      )}
-
-                      {/* MY PROFILE */}
                       <Link
                         to="/profile"
-                        onClick={() => setProfileOpen(false)}
+                        onClick={handleNavigation}
                         className="flex items-center gap-3 rounded-xl px-3 py-3 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
                       >
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/10">
                           <User className="h-4 w-4 text-purple-400" />
                         </div>
-
                         <div>
-                          <p className="text-sm font-semibold">
-                            My Profile
-                          </p>
-
-                          <p className="text-[11px] text-slate-500">
-                            Manage your account
-                          </p>
+                          <p className="text-sm font-semibold">My Profile</p>
+                          <p className="text-[11px] text-slate-500">Manage your account</p>
                         </div>
                       </Link>
-
                     </div>
 
                     {/* LOGOUT */}
@@ -352,26 +281,16 @@ export function Navbar() {
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10">
                           <LogOut className="h-4 w-4" />
                         </div>
-
                         <div className="text-left">
-                          <p className="text-sm font-semibold">
-                            Sign Out
-                          </p>
-
-                          <p className="text-[11px] text-red-400/50">
-                            End your current session
-                          </p>
+                          <p className="text-sm font-semibold">Sign Out</p>
+                          <p className="text-[11px] text-red-400/50">End your current session</p>
                         </div>
                       </button>
                     </div>
-
                   </div>
                 )}
-
               </div>
             ) : (
-
-              /* SIGN IN */
               <Link
                 to="/login"
                 className="hidden items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-semibold text-slate-200 transition-all hover:border-yellow-500/40 hover:bg-slate-800 sm:flex"
@@ -379,7 +298,6 @@ export function Navbar() {
                 <User className="h-4 w-4 text-yellow-400" />
                 <span>Sign In</span>
               </Link>
-
             )}
 
             {/* MOBILE MENU BUTTON */}
@@ -392,13 +310,8 @@ export function Navbar() {
               className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-300 transition-all hover:bg-slate-800 hover:text-white xl:hidden"
               aria-label="Toggle navigation"
             >
-              {mobileOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-
           </div>
         </div>
       </div>
@@ -407,17 +320,11 @@ export function Navbar() {
       {mobileOpen && (
         <div className="border-t border-slate-800/80 bg-slate-950/95 backdrop-blur-xl xl:hidden">
           <div className="mx-auto max-w-[100rem] px-4 py-4">
-
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {navLinks.map((link) => {
                 if (link.protected && !user) return null;
-
                 const Icon = link.icon;
-
-                const isActive =
-                  location.pathname === link.path ||
-                  (link.path !== '/' &&
-                    location.pathname.startsWith(`${link.path}/`));
+                const active = isActive(link.path);
 
                 return (
                   <Link
@@ -426,45 +333,35 @@ export function Navbar() {
                     onClick={handleNavigation}
                     className={cn(
                       'flex items-center gap-3 rounded-xl border p-3 transition-all',
-                      isActive
+                      active
                         ? 'border-yellow-500/20 bg-yellow-500/10 text-yellow-400'
                         : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:bg-slate-800 hover:text-white'
                     )}
                   >
                     <Icon className="h-5 w-5 shrink-0" />
-
-                    <span className="text-sm font-medium">
-                      {link.name}
-                    </span>
+                    <span className="text-sm font-medium">{link.name}</span>
                   </Link>
                 );
               })}
             </div>
 
-            {/* MOBILE SUPER ADMIN PROFILE */}
-            {user?.isSuperAdmin && (
+            {/* MOBILE SUPER ADMIN PROFILE: visible to every logged-in user */}
+            {user && (
               <Link
                 to="/super-admin-profile"
                 onClick={handleNavigation}
-                className="mt-3 flex items-center gap-3 rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-3 text-yellow-400 transition-all hover:bg-yellow-500/15"
+                className="mt-3 flex items-center gap-3 rounded-xl border border-purple-500/20 bg-purple-500/10 p-3 text-purple-300 transition-all hover:bg-purple-500/15"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-500/10">
-                  <Crown className="h-5 w-5" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10">
+                  <Crown className="h-5 w-5 text-purple-400" />
                 </div>
-
                 <div>
-                  <p className="text-sm font-semibold">
-                    Super Admin Profile
-                  </p>
-
-                  <p className="text-[11px] text-yellow-500/60">
-                    Super Admin information
-                  </p>
+                  <p className="text-sm font-semibold">Super Admin Profile</p>
+                  <p className="text-[11px] text-slate-500">View profile information</p>
                 </div>
               </Link>
             )}
 
-            {/* MOBILE SIGN IN */}
             {!user && (
               <Link
                 to="/login"
@@ -475,7 +372,6 @@ export function Navbar() {
                 Sign In
               </Link>
             )}
-
           </div>
         </div>
       )}

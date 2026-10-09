@@ -22,6 +22,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import './DashboardPremium.css';
 
 type HistoryRow = {
   id: string;
@@ -436,7 +437,7 @@ export function Dashboard() {
   if (!user) return null;
 
   return (
-    <div className="app-background min-h-screen">
+    <div className="app-background min-h-screen dashboard-premium">
 
       <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 page-enter">
 

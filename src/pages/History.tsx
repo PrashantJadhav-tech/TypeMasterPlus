@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -18,9 +19,9 @@ import {
   Clock,
   BarChart3,
   RefreshCw,
-  TrendingUp,
   CalendarDays,
   Zap,
+  Trash2,
 } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -55,12 +56,15 @@ export function History() {
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const loadHistory = async (isRefresh = false) => {
     if (!user) {
       setHistory([]);
       setLoading(false);
+      setRefreshing(false);
       return;
     }
 
@@ -71,22 +75,20 @@ export function History() {
     }
 
     setError('');
+    setSuccessMessage('');
 
     try {
       const { data, error: supabaseError } = await supabase
         .from('typing_history')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', {
-          ascending: true,
-        });
+        .order('created_at', { ascending: true });
 
       if (supabaseError) {
         console.error('History load error:', supabaseError);
         setError(
           supabaseError.message || 'Failed to load typing history.'
         );
-        setHistory([]);
         return;
       }
 
@@ -100,9 +102,60 @@ export function History() {
     }
   };
 
+  // Reset only the currently logged-in user's history.
+  const resetHistory = async () => {
+    if (!user || deleting || history.length === 0) return;
+
+    const confirmed = window.confirm(
+      'Are you sure you want to delete ALL your typing history? This action cannot be undone.'
+    );
+
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      const { data, error: deleteError } = await supabase
+        .from('typing_history')
+        .delete()
+        .eq('user_id', user.id)
+        .select('id');
+
+      if (deleteError) {
+        console.error('History reset error:', deleteError);
+        setError(
+          deleteError.message ||
+            'Failed to reset history. Check your Supabase permissions.'
+        );
+        return;
+      }
+
+      // Remove displayed records only after the database operation succeeds.
+      setHistory([]);
+
+      if (data && data.length > 0) {
+        setSuccessMessage('Your typing history has been reset successfully.');
+      } else {
+        // No rows returned may mean there was nothing to delete or
+        // that database permissions prevented rows from being returned.
+        await loadHistory();
+        setSuccessMessage(
+          'Reset request completed. Your history has been refreshed.'
+        );
+      }
+    } catch (err) {
+      console.error('Unexpected reset error:', err);
+      setError('Something went wrong while resetting your history.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   useEffect(() => {
-    loadHistory();
-  }, [user]);
+    void loadHistory();
+  }, [user?.id]);
 
   // ==============================
   // STATISTICS
@@ -111,12 +164,12 @@ export function History() {
   const averageWpm = useMemo(() => {
     if (!history.length) return 0;
 
-    const total = history.reduce(
-      (sum, record) => sum + Number(record.wpm || 0),
-      0
+    return (
+      history.reduce(
+        (sum, record) => sum + Number(record.wpm || 0),
+        0
+      ) / history.length
     );
-
-    return total / history.length;
   }, [history]);
 
   const bestWpm = useMemo(() => {
@@ -130,12 +183,12 @@ export function History() {
   const averageAccuracy = useMemo(() => {
     if (!history.length) return 0;
 
-    const total = history.reduce(
-      (sum, record) => sum + Number(record.accuracy || 0),
-      0
+    return (
+      history.reduce(
+        (sum, record) => sum + Number(record.accuracy || 0),
+        0
+      ) / history.length
     );
-
-    return total / history.length;
   }, [history]);
 
   const bestAccuracy = useMemo(() => {
@@ -216,7 +269,6 @@ export function History() {
     return (
       <div className="flex-1 flex flex-col items-center justify-center">
         <Loader2 className="w-10 h-10 text-yellow-400 animate-spin mb-4" />
-
         <p className="text-slate-400">
           Loading your typing history...
         </p>
@@ -258,34 +310,67 @@ export function History() {
           </p>
         </div>
 
-        <button
-          onClick={() => loadHistory(true)}
-          disabled={refreshing}
-          className="pro-btn pro-btn-secondary inline-flex items-center justify-center gap-2"
-        >
-          <RefreshCw
-            className={`w-4 h-4 ${
-              refreshing ? 'animate-spin' : ''
-            }`}
-          />
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={resetHistory}
+            disabled={deleting || refreshing || history.length === 0}
+            className="pro-btn inline-flex items-center justify-center gap-2 border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {deleting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
 
-          <span>
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-          </span>
-        </button>
+            <span>
+              {deleting ? 'Resetting...' : 'Reset History'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void loadHistory(true)}
+            disabled={refreshing || deleting}
+            className="pro-btn pro-btn-secondary inline-flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <RefreshCw
+              className={`w-4 h-4 ${
+                refreshing ? 'animate-spin' : ''
+              }`}
+            />
+
+            <span>
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </span>
+          </button>
+        </div>
       </div>
+
+      {/* SUCCESS MESSAGE */}
+      {successMessage && (
+        <div
+          role="status"
+          className="mb-6 rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-green-300 text-sm"
+        >
+          {successMessage}
+        </div>
+      )}
 
       {/* ERROR */}
       {error && (
-        <div className="mb-8 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 flex items-start gap-3">
+        <div
+          role="alert"
+          className="mb-8 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 flex items-start gap-3"
+        >
           <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 shrink-0" />
 
           <div>
             <p className="text-red-300 font-semibold">
-              Unable to load history
+              Unable to process history
             </p>
 
-            <p className="text-red-400/80 text-sm mt-1">
+            <p className="text-red-400/80 text-sm mt-1 break-words">
               {error}
             </p>
           </div>
@@ -320,7 +405,6 @@ export function History() {
         <>
           {/* STAT CARDS */}
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-
             <HistoryStat
               icon={<Target className="w-5 h-5" />}
               label="Average WPM"
@@ -358,12 +442,10 @@ export function History() {
               label="Practice Time"
               value={formatTotalTime(totalPracticeSeconds)}
             />
-
           </div>
 
           {/* WPM + ACCURACY CHART */}
           <div className="pro-card p-5 md:p-7 mb-8">
-
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-7">
               <div>
                 <h2 className="text-xl font-black text-white">
@@ -389,10 +471,7 @@ export function History() {
             </div>
 
             <div className="w-full h-[340px]">
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-              >
+              <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={chartData}
                   margin={{
@@ -411,10 +490,7 @@ export function History() {
                   <XAxis
                     dataKey="test"
                     stroke="#64748b"
-                    tick={{
-                      fill: '#94a3b8',
-                      fontSize: 12,
-                    }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                   />
@@ -422,10 +498,7 @@ export function History() {
                   <YAxis
                     yAxisId="wpm"
                     stroke="#64748b"
-                    tick={{
-                      fill: '#94a3b8',
-                      fontSize: 12,
-                    }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                   />
@@ -435,10 +508,7 @@ export function History() {
                     orientation="right"
                     domain={[0, 100]}
                     stroke="#64748b"
-                    tick={{
-                      fill: '#94a3b8',
-                      fontSize: 12,
-                    }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                   />
@@ -453,10 +523,7 @@ export function History() {
                       color: '#cbd5e1',
                       marginBottom: '6px',
                     }}
-                    formatter={(
-                      value: number,
-                      name: string
-                    ) => {
+                    formatter={(value: number, name: string) => {
                       if (name === 'wpm') {
                         return [
                           `${Number(value).toFixed(1)} WPM`,
@@ -482,9 +549,7 @@ export function History() {
                       fill: '#eab308',
                       strokeWidth: 0,
                     }}
-                    activeDot={{
-                      r: 6,
-                    }}
+                    activeDot={{ r: 6 }}
                   />
 
                   <Line
@@ -498,9 +563,7 @@ export function History() {
                       fill: '#60a5fa',
                       strokeWidth: 0,
                     }}
-                    activeDot={{
-                      r: 6,
-                    }}
+                    activeDot={{ r: 6 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -509,7 +572,6 @@ export function History() {
 
           {/* RECENT TESTS */}
           <div className="pro-card overflow-hidden">
-
             <div className="p-5 md:p-6 border-b border-slate-700/70">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
@@ -568,28 +630,26 @@ export function History() {
                         className="border-t border-slate-700/60 hover:bg-slate-700/20 transition-colors"
                       >
                         <td className="px-6 py-4 text-sm text-slate-300 whitespace-nowrap">
-                          {new Date(
-                            record.created_at
-                          ).toLocaleString('en-IN', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                          {new Date(record.created_at).toLocaleString(
+                            'en-IN',
+                            {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            }
+                          )}
                         </td>
 
                         <td className="px-6 py-4 text-sm text-slate-300 max-w-[240px]">
                           <div className="truncate">
-                            {record.passage_title ||
-                              'Quick Test'}
+                            {record.passage_title || 'Quick Test'}
                           </div>
                         </td>
 
                         <td className="px-6 py-4">
-                          <TestTypeBadge
-                            type={record.test_type}
-                          />
+                          <TestTypeBadge type={record.test_type} />
                         </td>
 
                         <td className="px-6 py-4">
@@ -600,18 +660,13 @@ export function History() {
 
                         <td className="px-6 py-4">
                           <span className="font-bold text-green-400">
-                            {Number(
-                              record.accuracy || 0
-                            ).toFixed(1)}
-                            %
+                            {Number(record.accuracy || 0).toFixed(1)}%
                           </span>
                         </td>
 
                         <td className="px-6 py-4">
                           <span className="text-slate-300 text-sm">
-                            {formatTime(
-                              record.time_elapsed || 0
-                            )}
+                            {formatTime(record.time_elapsed || 0)}
                           </span>
                         </td>
                       </tr>
@@ -655,9 +710,7 @@ function HistoryStat({
       <div className="flex items-center justify-between mb-3">
         <span
           className={
-            highlight
-              ? 'text-yellow-400'
-              : 'text-slate-400'
+            highlight ? 'text-yellow-400' : 'text-slate-400'
           }
         >
           {icon}
@@ -667,11 +720,7 @@ function HistoryStat({
       <div
         className={`
           text-2xl md:text-3xl font-black
-          ${
-            highlight
-              ? 'text-yellow-400'
-              : 'text-white'
-          }
+          ${highlight ? 'text-yellow-400' : 'text-white'}
         `}
       >
         {value}
@@ -688,17 +737,10 @@ function HistoryStat({
 // TEST TYPE BADGE
 // ==============================
 
-function TestTypeBadge({
-  type,
-}: {
-  type: string;
-}) {
-  const normalizedType = (
-    type || 'practice'
-  ).toLowerCase();
+function TestTypeBadge({ type }: { type: string }) {
+  const normalizedType = (type || 'practice').toLowerCase();
 
-  let className =
-    'bg-slate-700 text-slate-300';
+  let className = 'bg-slate-700 text-slate-300';
 
   if (normalizedType === 'exam') {
     className =
@@ -728,7 +770,5 @@ function formatTime(seconds: number) {
   const mins = Math.floor(Number(seconds) / 60);
   const secs = Number(seconds) % 60;
 
-  return `${mins}:${secs
-    .toString()
-    .padStart(2, '0')}`;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
