@@ -8,6 +8,7 @@ export type User = {
   createdAt: string;
   avatarUrl: string | null;
   role: 'user' | 'admin';
+  isSuperAdmin: boolean;
 };
 
 type AuthContextType = {
@@ -55,12 +56,13 @@ const convertUser = (
     null,
 
   role: profile?.role === 'admin' ? 'admin' : 'user',
+  isSuperAdmin: profile?.is_super_admin === true,
 });
 
 async function getProfile(userId: string) {
   const { data } = await supabase
     .from('profiles')
-    .select('username, avatar_url, role')
+    .select('username, avatar_url, role, is_super_admin')
     .eq('id', userId)
     .maybeSingle();
 

@@ -14,6 +14,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Loader2,
+  Lock,
 } from 'lucide-react';
 
 type Profile = {
@@ -28,6 +29,7 @@ type Profile = {
 
 export function AdminDashboard() {
   const { user } = useAuth();
+  const isSuperAdmin = user?.isSuperAdmin === true;
 
   const [users, setUsers] = useState<Profile[]>([]);
   const [search, setSearch] = useState('');
@@ -61,6 +63,11 @@ export function AdminDashboard() {
   }, []);
 
   const toggleAdmin = async (target: Profile) => {
+    if (!isSuperAdmin) {
+      alert('Only the Super Admin can manage administrator access.');
+      return;
+    }
+
     if (target.is_super_admin) {
       alert('The Super Admin cannot be removed or demoted.');
       return;
@@ -210,20 +217,16 @@ export function AdminDashboard() {
             </div>
 
             <div className="relative w-full lg:w-96">
-              {!search && (
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              )}
+  <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-500" />
 
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search username or email..."
-                className={`pro-input transition-all ${
-                  search ? 'pl-4' : 'pl-11'
-                }`}
-              />
-            </div>
+  <input
+    type="text"
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+    placeholder="Search username or email..."
+    className="pro-input w-full pl-11 pr-4"
+  />
+</div>
           </div>
 
           <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
@@ -351,13 +354,10 @@ export function AdminDashboard() {
                           <CheckCircle2 className="h-4 w-4" />
                           Protected
                         </div>
-                      ) : (
+                      ) : isSuperAdmin ? (
                         <button
                           onClick={() => toggleAdmin(target)}
-                          disabled={
-                            isBusy ||
-                            isCurrentUser
-                          }
+                          disabled={isBusy || isCurrentUser}
                           className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
                             target.role === 'admin'
                               ? 'border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20'
@@ -366,21 +366,22 @@ export function AdminDashboard() {
                         >
                           {isBusy ? (
                             <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Updating...
+                              <Loader2 className="h-4 w-4 animate-spin" /> Updating...
                             </>
                           ) : target.role === 'admin' ? (
                             <>
-                              <UserMinus className="h-4 w-4" />
-                              Remove Admin
+                              <UserMinus className="h-4 w-4" /> Remove Admin
                             </>
                           ) : (
                             <>
-                              <UserPlus className="h-4 w-4" />
-                              Make Admin
+                              <UserPlus className="h-4 w-4" /> Make Admin
                             </>
                           )}
                         </button>
+                      ) : (
+                        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-2 text-sm font-semibold text-slate-500">
+                          <Lock className="h-4 w-4" /> Super Admin Only
+                        </div>
                       )}
                     </div>
                   </div>
@@ -402,9 +403,9 @@ export function AdminDashboard() {
             </h3>
 
             <p className="mt-1 text-sm leading-6 text-slate-400">
-              Super Admin accounts are protected and cannot be demoted
-              through this dashboard. An administrator also cannot remove
-              their own admin access.
+              Only the Super Admin can make or remove administrator access.
+              Super Admin accounts are protected and cannot be demoted through
+              this dashboard.
             </p>
           </div>
         </div>
